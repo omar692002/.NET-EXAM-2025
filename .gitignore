@@ -1,0 +1,40 @@
+# Visual Studio
+.vs/
+
+# Build folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# NuGet packages
+*.nupkg
+packages/
+.nuget/
+
+# ASP.NET Core
+wwwroot/lib/
+
+# EF Core Migrations (si tu veux les ignorer, sinon laisse)
+# Migrations/
+
+# Logs
+*.log
+
+# Database files
+*.mdf
+*.ldf
+
+# OS generated files
+.DS_Store
+Thumbs.db
