@@ -1,6 +1,7 @@
 using GestionParfumerie.Application.Mapping;
 using GestionParfumerie.Domain.Entities;
 using GestionParfumerie.Infrastructure.Data;
+using GestionParfumerie.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -16,20 +17,26 @@ namespace GestionParfumerie
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // --- Connection string ---
+            // ==========================================
+            //  CONFIGURATION DE LA BASE DE DONNÉES
+            // ==========================================
             var cnx = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // --- Add DbContext ---
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(cnx));
 
-            // --- Add Identity ---
+            // ==========================================
+            //  CONFIGURATION DE IDENTITY (Utilisateurs)
+            // ==========================================
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
-            // --- Add Authentication with JWT ---
+            // ==========================================
+            //  CONFIGURATION DU JWT
+            // ==========================================
             var jwtSecret = builder.Configuration["JWT:SecretKey"];
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -44,18 +51,32 @@ namespace GestionParfumerie
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                    IssuerSigningKey = key,
                     ClockSkew = TimeSpan.Zero
                 };
             });
 
-            //--- Add AutoMapper ---
+            // ==========================================
+            //  CONFIGURATION D’AUTOMAPPER
+            // ==========================================
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+            // ==========================================
+            //  CONFIGURATION DES REPOSITORIES
+            // ==========================================
+            builder.Services.AddScoped<IProduitRepository, ProduitRepository>();
 
-            // --- Add Controllers and Swagger ---
+             builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
+             builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
+             builder.Services.AddScoped<IFournisseursRepository, FournisseursRepository>();
+             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
+
+            // ==========================================
+            //  CONFIGURATION SWAGGER (avec JWT)
+            // ==========================================
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+
             builder.Services.AddSwaggerGen(options =>
             {
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -65,8 +86,9 @@ namespace GestionParfumerie
                     Scheme = "Bearer",
                     BearerFormat = "JWT",
                     In = ParameterLocation.Header,
-                    Description = "Entrez votre token JWT"
+                    Description = "Entrez votre token JWT (ex: Bearer {votre_token})"
                 });
+
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     {
@@ -83,9 +105,11 @@ namespace GestionParfumerie
                 });
             });
 
+            // ==========================================
+            //  CONFIGURATION DU PIPELINE HTTP
+            // ==========================================
             var app = builder.Build();
 
-            // --- Configure Middleware ---
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -94,7 +118,7 @@ namespace GestionParfumerie
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication(); // MUST be before UseAuthorization
+            app.UseAuthentication(); // doit être avant UseAuthorization
             app.UseAuthorization();
 
             app.MapControllers();

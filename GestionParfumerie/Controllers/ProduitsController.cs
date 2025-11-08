@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
-using GestionParfumerie.Infrastructure.Repositories;
 using GestionParfumerie.Application.DTOs;
+using GestionParfumerie.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GestionParfumerie.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ProduitsController : ControllerBase
