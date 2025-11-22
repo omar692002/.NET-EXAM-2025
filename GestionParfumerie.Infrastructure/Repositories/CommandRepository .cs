@@ -1,6 +1,7 @@
 ﻿using GestionParfumerie.Domain.Entities;
 using GestionParfumerie.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using GestionParfumerie.Application.Interfaces;
 
 namespace GestionParfumerie.Infrastructure.Repositories
 {
@@ -13,41 +14,40 @@ namespace GestionParfumerie.Infrastructure.Repositories
             _context = context;
         }
 
-        // --- Get all commandes with related data ---
         public async Task<IEnumerable<Commande>> GetAllAsync()
         {
             return await _context.Commandes
-                .Include(c => c.Utilisateur)
                 .Include(c => c.LigneCommandes)
-                    .ThenInclude(lc => lc.Produit)
+                    .ThenInclude(l => l.Produit)
+                        .ThenInclude(p => p.Categorie)
+                .Include(c => c.LigneCommandes)
+                    .ThenInclude(l => l.Produit)
+                        .ThenInclude(p => p.Fournisseur)
+                .Include(c => c.LigneCommandes)
+                    .ThenInclude(l => l.Produit)
+                        .ThenInclude(p => p.FamilleOlfactive)
+                .Include(c => c.Utilisateur)
                 .ToListAsync();
         }
 
-        // --- Get one commande by Id ---
-        public async Task<Commande?> GetByIdAsync(int id)
-        {
-            return await _context.Commandes
-                .Include(c => c.Utilisateur)
+        public async Task<Commande> GetByIdAsync(int id) =>
+            await _context.Commandes
                 .Include(c => c.LigneCommandes)
-                    .ThenInclude(lc => lc.Produit)
+                    .ThenInclude(l => l.Produit)
                 .FirstOrDefaultAsync(c => c.Id == id);
-        }
 
-        // --- Add a new commande ---
         public async Task AddAsync(Commande commande)
         {
             _context.Commandes.Add(commande);
             await _context.SaveChangesAsync();
         }
 
-        // --- Update an existing commande ---
         public async Task UpdateAsync(Commande commande)
         {
             _context.Commandes.Update(commande);
             await _context.SaveChangesAsync();
         }
 
-        // --- Delete a commande ---
         public async Task DeleteAsync(int id)
         {
             var commande = await GetByIdAsync(id);
@@ -56,6 +56,15 @@ namespace GestionParfumerie.Infrastructure.Repositories
                 _context.Commandes.Remove(commande);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<IEnumerable<Commande>> GetAllByUtilisateurIdAsync(string utilisateurId)
+        {
+            return await _context.Commandes
+                .Where(c => c.UtilisateurId == utilisateurId)
+                .Include(c => c.LigneCommandes)
+                    .ThenInclude(lc => lc.Produit)
+                .ToListAsync();
         }
     }
 }

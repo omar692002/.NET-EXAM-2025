@@ -1,7 +1,7 @@
 ﻿using GestionParfumerie.Domain.Entities;
 using GestionParfumerie.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-
+using GestionParfumerie.Application.Interfaces;
 namespace GestionParfumerie.Infrastructure.Repositories
 {
     public class CategoriesRepository : ICategoriesRepository

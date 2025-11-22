@@ -32,11 +32,11 @@ namespace GestionParfumerie.Controllers
         // ==========================================
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest model)
-        {   var existingUser = await _userManager.FindByEmailAsync(model.Email);
+        {
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
             if (existingUser != null)
-            {
                 return BadRequest("Un utilisateur avec cet email existe déjà.");
-            }
+
             var user = new ApplicationUser
             {
                 UserName = model.Email,
@@ -49,14 +49,14 @@ namespace GestionParfumerie.Controllers
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded) return BadRequest(result.Errors);
 
-            if (!result.Succeeded)
-            {
-                return BadRequest(result.Errors);
-            }
+            // Assigner un rôle par défaut
+            await _userManager.AddToRoleAsync(user, "Client"); 
 
             return Ok(new { message = "Utilisateur créé avec succès" });
         }
+
 
         // ==========================================
         //  LOGIN
@@ -73,7 +73,7 @@ namespace GestionParfumerie.Controllers
                 return Unauthorized("Mot de passe incorrect");
 
             // Générer le token JWT
-            var token = GenerateJwtToken(user);
+            var token = await GenerateJwtToken(user);
 
             return Ok(new { token });
         }
@@ -81,17 +81,22 @@ namespace GestionParfumerie.Controllers
         // ==========================================
         //  MÉTHODE PRIVÉE POUR GÉNÉRER LE JWT
         // ==========================================
-        private string GenerateJwtToken(ApplicationUser user)
+        private async Task<string> GenerateJwtToken(ApplicationUser user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SecretKey"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var claims = new List<Claim>
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+        new Claim(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+    };
+
+            // Ajouter les rôles dans les claims
+            claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JWT:Issuer"],
@@ -104,6 +109,7 @@ namespace GestionParfumerie.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
+    }
 
     
-}
+

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GestionParfumerie.Application.DTOs
 {
-    public class ProduitDto
+    public class ProduitDTO
     {
         public int Id { get; set; }
         public string Nom { get; set; }

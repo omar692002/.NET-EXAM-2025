@@ -1,7 +1,7 @@
 ﻿using GestionParfumerie.Domain.Entities;
 
 
-namespace GestionParfumerie.Infrastructure.Repositories
+namespace GestionParfumerie.Application.Interfaces
 {
     public interface IProduitRepository
     {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
-
+using GestionParfumerie.Domain.Enums;
 namespace GestionParfumerie.Domain.Entities
 {
     public class Commande
@@ -11,7 +11,7 @@ namespace GestionParfumerie.Domain.Entities
         public DateTime DateCommande { get; set; } = DateTime.Now;
 
         [MaxLength(50)]
-        public string Statut { get; set; } = "En cours";
+        public StatutCommande Statut { get; set; } = StatutCommande.EnCours;
 
         [Precision(18, 2)] 
         public decimal Total { get; set; }

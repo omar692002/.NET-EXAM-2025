@@ -1,4 +1,5 @@
 using GestionParfumerie.Application.Mapping;
+using GestionParfumerie.Application.Services;
 using GestionParfumerie.Domain.Entities;
 using GestionParfumerie.Infrastructure.Data;
 using GestionParfumerie.Infrastructure.Repositories;
@@ -8,12 +9,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using GestionParfumerie.Application.Interfaces;
 
 namespace GestionParfumerie
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -62,21 +64,21 @@ namespace GestionParfumerie
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
             // ==========================================
-            //  CONFIGURATION DES REPOSITORIES
+            //  CONFIGURATION DES REPOSITORIES & SERVICES
             // ==========================================
-            builder.Services.AddScoped<IProduitRepository, ProduitRepository>();
-
-             builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
-             builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
-             builder.Services.AddScoped<IFournisseursRepository, FournisseursRepository>();
-             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
+            builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
+            builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
+            builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
+            builder.Services.AddScoped<IFournisseursRepository, FournisseursRepository>();
+            builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
+            builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
+            builder.Services.AddScoped<ICommandeService, CommandeService>();
 
             // ==========================================
             //  CONFIGURATION SWAGGER (avec JWT)
             // ==========================================
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-
             builder.Services.AddSwaggerGen(options =>
             {
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -105,11 +107,45 @@ namespace GestionParfumerie
                 });
             });
 
-            // ==========================================
-            //  CONFIGURATION DU PIPELINE HTTP
-            // ==========================================
             var app = builder.Build();
 
+            // ==========================================
+            //  SEED DES RÔLES ET ADMIN/CLIENT
+            // ==========================================
+            using (var scope = app.Services.CreateScope())
+            {
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+                // Créer les rôles si nécessaire
+                string[] roles = { "Admin", "Client" };
+                foreach (var role in roles)
+                {
+                    if (!await roleManager.RoleExistsAsync(role))
+                        await roleManager.CreateAsync(new IdentityRole(role));
+                }
+
+                // Créer l'utilisateur admin s'il n'existe pas
+                var adminEmail = "admin@admin.com";
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        Nom = "Super",
+                        Prenom = "Admin"
+                    };
+
+                    await userManager.CreateAsync(adminUser, "Admin123!"); // mot de passe sécurisé
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                }
+            }
+
+            // ==========================================
+            //  PIPELINE HTTP
+            // ==========================================
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -117,13 +153,12 @@ namespace GestionParfumerie
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication(); // doit être avant UseAuthorization
             app.UseAuthorization();
 
             app.MapControllers();
 
-            app.Run();
+            await app.RunAsync();
         }
     }
 }

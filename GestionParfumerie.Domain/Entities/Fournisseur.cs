@@ -20,6 +20,6 @@ namespace GestionParfumerie.Domain.Entities
 
         public required string Adresse { get; set; }
 
-        public required ICollection<Produit> Produits { get; set; }
+        public ICollection<Produit> Produits { get; set; } = new List<Produit>();
     }
 }

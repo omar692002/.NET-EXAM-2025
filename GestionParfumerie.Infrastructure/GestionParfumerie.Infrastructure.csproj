@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\GestionParfumerie.Application\GestionParfumerie.Application.csproj" />
     <ProjectReference Include="..\GestionParfumerie.Domain\GestionParfumerie.Domain.csproj" />
   </ItemGroup>
 

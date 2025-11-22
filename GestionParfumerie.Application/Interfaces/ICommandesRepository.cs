@@ -1,7 +1,6 @@
 ﻿using GestionParfumerie.Domain.Entities;
 
-
-namespace GestionParfumerie.Infrastructure.Repositories
+namespace GestionParfumerie.Application.Interfaces
 {
     public interface ICommandesRepository
     {
@@ -10,5 +9,6 @@ namespace GestionParfumerie.Infrastructure.Repositories
         Task AddAsync(Commande commande);
         Task UpdateAsync(Commande commande);
         Task DeleteAsync(int id);
+        Task<IEnumerable<Commande>> GetAllByUtilisateurIdAsync(string utilisateurId);
     }
 }

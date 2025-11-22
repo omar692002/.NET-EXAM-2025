@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GestionParfumerie.Infrastructure.Repositories
+namespace GestionParfumerie.Application.Interfaces
 {
     public interface IFamilleOlfactivesRepository
     {
