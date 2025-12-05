@@ -1,8 +1,21 @@
 ﻿@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Navigation.NavigateTo("/login");
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            // Si connecté → rediriger vers la page d'accueil
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            // Si pas connecté → rediriger vers login
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
     }
 }
