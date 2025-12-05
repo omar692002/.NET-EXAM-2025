@@ -1,0 +1,59 @@
+﻿@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Administration</PageTitle>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <h1>🔧 Panel d'Administration</h1>
+            <p class="text-muted">Seuls les administrateurs peuvent accéder à cette page</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">👥 Utilisateurs</h5>
+                    <p class="card-text">Gérer les comptes utilisateurs</p>
+                    <button class="btn btn-light">Voir</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">🛍️ Produits</h5>
+                    <p class="card-text">Gérer le catalogue</p>
+                    <button class="btn btn-light">Voir</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">📊 Statistiques</h5>
+                    <p class="card-text">Voir les rapports</p>
+                    <button class="btn btn-light">Voir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <AuthorizeView>
+        <Authorized Context="authUser">
+            <div class="alert alert-info mt-4">
+                <strong>Debug Info:</strong>
+                <ul class="mb-0">
+                    @foreach (var claim in authUser.User.Claims)
+                    {
+                        <li><code>@claim.Type</code> = @claim.Value</li>
+                    }
+                </ul>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

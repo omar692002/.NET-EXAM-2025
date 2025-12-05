@@ -18,6 +18,19 @@ namespace GestionParfumerie
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            // ==========================================
+            //  CONFIGURATION DE CORS
+            // ==========================================
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowBlazorClient", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5266")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
 
             // ==========================================
             //  CONFIGURATION DE LA BASE DE DONNÉES
@@ -151,6 +164,7 @@ namespace GestionParfumerie
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.UseCors("AllowBlazorClient");
 
             app.UseHttpsRedirection();
             app.UseAuthentication(); // doit être avant UseAuthorization

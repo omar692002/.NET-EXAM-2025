@@ -1,0 +1,57 @@
+﻿@page "/products"
+@attribute [Authorize(Roles = "Client,Admin")]
+
+<PageTitle>Produits</PageTitle>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <h1>🛍️ Catalogue de Parfums</h1>
+            <p class="text-muted">Accessible aux clients et administrateurs</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Parfum Élégance</h5>
+                    <p class="card-text">Un parfum raffiné aux notes florales</p>
+                    <p class="text-primary fw-bold">89.99 TND</p>
+                    <button class="btn btn-primary">Ajouter au panier</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Parfum Mystère</h5>
+                    <p class="card-text">Des notes boisées et sensuelles</p>
+                    <p class="text-primary fw-bold">109.99 TND</p>
+                    <button class="btn btn-primary">Ajouter au panier</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Parfum Fraîcheur</h5>
+                    <p class="card-text">Une fragrance légère et citronée</p>
+                    <p class="text-primary fw-bold">69.99 TND</p>
+                    <button class="btn btn-primary">Ajouter au panier</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <AuthorizeView Roles="Admin">
+        <Authorized Context="adminUser">
+            <div class="alert alert-warning mt-4">
+                <strong>👑 Mode Admin :</strong> Vous pouvez également modifier ces produits
+                <button class="btn btn-sm btn-warning ms-2">Éditer le catalogue</button>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

@@ -1,0 +1,139 @@
+﻿@page "/register"
+@using GestionParfumerie.Client.Models
+@using GestionParfumerie.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Inscription</h3>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @successMessage
+                        </div>
+                    }
+
+                    <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                        <DataAnnotationsValidator />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nom" class="form-label">Nom</label>
+                                <InputText id="nom" @bind-Value="registerModel.Nom"
+                                           class="form-control" />
+                                <ValidationMessage For="@(() => registerModel.Nom)" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="prenom" class="form-label">Prénom</label>
+                                <InputText id="prenom" @bind-Value="registerModel.Prenom"
+                                           class="form-control" />
+                                <ValidationMessage For="@(() => registerModel.Prenom)" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" @bind-Value="registerModel.Email"
+                                       class="form-control" type="email" />
+                            <ValidationMessage For="@(() => registerModel.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <InputText id="password" @bind-Value="registerModel.Password"
+                                       type="password" class="form-control" />
+                            <ValidationMessage For="@(() => registerModel.Password)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dateNaissance" class="form-label">Date de naissance</label>
+                            <InputDate id="dateNaissance" @bind-Value="registerModel.DateNaissance"
+                                       class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="adresse" class="form-label">Adresse (optionnel)</label>
+                            <InputText id="adresse" @bind-Value="registerModel.Adresse"
+                                       class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Téléphone (optionnel)</label>
+                            <InputText id="phone" @bind-Value="registerModel.PhoneNumber"
+                                       class="form-control" />
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <span>Inscription en cours...</span>
+                            }
+                            else
+                            {
+                                <span>S'inscrire</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+                        <p>Déjà un compte ? <a href="/login">Se connecter</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterDTO registerModel = new();
+    private string errorMessage = "";
+    private string successMessage = "";
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        errorMessage = "";
+        successMessage = "";
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.Register(registerModel);
+
+            if (result.Success)
+            {
+                successMessage = "Inscription réussie ! Redirection vers la page de connexion...";
+                await Task.Delay(2000);
+                NavManager.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erreur: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    
+}

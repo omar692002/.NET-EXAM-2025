@@ -1,0 +1,116 @@
+﻿@page "/login"
+@using GestionParfumerie.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Connexion</h3>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" @bind-Value="loginModel.Email"
+                                       class="form-control" placeholder="exemple@email.com" />
+                            <ValidationMessage For="@(() => loginModel.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de passe</label>
+                            <InputText id="password" @bind-Value="loginModel.Password"
+                                       type="password" class="form-control" />
+                            <ValidationMessage For="@(() => loginModel.Password)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                <span>Connexion en cours...</span>
+                            }
+                            else
+                            {
+                                <span>Se connecter</span>
+                            }
+                        </button>
+                    </EditForm>
+
+                    <div class="text-center mt-3">
+                        <p>Pas encore de compte ? <a href="/register">S'inscrire</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = "";
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = "";
+        isLoading = true;
+
+        try
+        {
+            var result = await AuthService.Login(loginModel.Email, loginModel.Password);
+
+            if (result.Success)
+            {
+                // Notifier le changement d'état d'authentification
+                ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication();
+
+                // Rediriger selon le rôle
+                var user = await AuthService.GetClaimsPrincipalAsync();
+
+                if (user.IsInRole("Admin"))
+                {
+                    NavManager.NavigateTo("/admin", forceLoad: true);
+                }
+                else
+                {
+                    NavManager.NavigateTo("/", forceLoad: true);
+                }
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erreur: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "L'email est requis")]
+        [EmailAddress(ErrorMessage = "Email invalide")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Le mot de passe est requis")]
+        public string Password { get; set; } = "";
+    }
+}

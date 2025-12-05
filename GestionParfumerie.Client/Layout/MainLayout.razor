@@ -1,16 +1,131 @@
 ﻿@inherits LayoutComponentBase
+@using GestionParfumerie.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">🌸 Parfumerie</a>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+
+                    <!-- MAIN MENU AUTH -->
+                    <AuthorizeView Context="navAuth">
+                        <Authorized Context="navUser">
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">Accueil</a>
+                            </li>
+
+                            <AuthorizeView Roles="Admin" Context="adminAuth">
+                                <Authorized Context="adminUser">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/admin">Admin</a>
+                                    </li>
+                                </Authorized>
+                            </AuthorizeView>
+
+                            <AuthorizeView Roles="Client" Context="clientAuth">
+                                <Authorized Context="clientUser">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/products">Produits</a>
+                                    </li>
+                                </Authorized>
+                            </AuthorizeView>
+
+                        </Authorized>
+                    </AuthorizeView>
+                </ul>
+
+                <ul class="navbar-nav">
+
+                    <!-- USER DROPDOWN -->
+                    <AuthorizeView Context="authState">
+                        <Authorized Context="user">
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button"
+                                   data-bs-toggle="dropdown">
+                                    👤 @user.User.Identity?.Name
+                                </a>
+
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <span class="dropdown-item-text">
+                                            <small>
+                                                @foreach (var role in user.User.Claims.Where(c => c.Type.Contains("role")))
+                                                {
+                                                    <span class="badge bg-primary me-1">@role.Value</span>
+                                                }
+                                            </small>
+                                        </span>
+                                    </li>
+
+                                    <li><hr class="dropdown-divider"></li>
+
+                                    <li>
+                                        <a class="dropdown-item" href="/profile">Mon profil</a>
+                                    </li>
+
+                                    <li>
+                                        <button class="dropdown-item" @onclick="HandleLogout">
+                                            Déconnexion
+                                        </button>
+                                    </li>
+                                </ul>
+                            </li>
+
+                        </Authorized>
+
+                        <NotAuthorized>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/login">Connexion</a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="/register">Inscription</a>
+                            </li>
+                        </NotAuthorized>
+
+                    </AuthorizeView>
+
+                </ul>
+            </div>
         </div>
+    </nav>
 
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="content px-4">
+        @Body
     </main>
 </div>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthService.Logout();
+        ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyUserLogout();
+        NavManager.NavigateTo("/login", forceLoad: true);
+    }
+}
+
+<style>
+    .page {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    .content {
+        flex: 1;
+    }
+</style>
