@@ -18,16 +18,22 @@ namespace GestionParfumerie.Client
                 BaseAddress = new Uri("http://localhost:5155/")
             });
 
-            // Services d'authentification
             builder.Services.AddAuthorizationCore();
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<JwtAuthenticationStateProvider>();
             builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
                 sp.GetRequiredService<JwtAuthenticationStateProvider>());
 
+            builder.Services.AddScoped<CategoriesService>();
+            builder.Services.AddScoped<FamillesOlfactivesService>();
+            builder.Services.AddScoped<ProduitsService>();
+            builder.Services.AddScoped<FournisseursService>();
+            builder.Services.AddScoped<CommandesService>();
+
+
+
             var host = builder.Build();
 
-            //  UTILISE LA MÉTHODE InitializeAsync AU LIEU
             var authService = host.Services.GetRequiredService<AuthService>();
             await authService.InitializeAsync();
 

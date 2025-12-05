@@ -1,0 +1,179 @@
+﻿@page "/admin/commandes"
+@attribute [Authorize(Roles = "Admin")]
+@inject CommandesService CommandesService
+
+<h3>Gestion des commandes</h3>
+
+@if (commandes == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Commande</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Total</th>
+                <th>Nb Articles</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in PagedCommandes)
+            {
+                <tr>
+                    <td>@c.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@c.UtilisateurEmail</td>
+                    <td>@c.DateCommande.ToShortDateString()</td>
+                    <td>@c.Statut</td>
+                    <td>@c.Total.ToString("C")</td>
+                    <td>@c.NbArticles</td>
+                    <td>
+                        <button class="btn btn-sm btn-info me-1" @onclick="() => ShowDetailsModal(c)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning" @onclick="() => ShowStatutModal(c)">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+            </li>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(currentPage == i ? "active" : "")">
+                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
+                </li>
+            }
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Modal détails commande -->
+<div class="modal fade @(showDetailsModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de la commande</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailsModal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Prix Unitaire</th>
+                            <th>Quantité</th>
+                            <th>Total Ligne</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ligne in selectedCommande?.LigneCommandes ?? Enumerable.Empty<LigneCommandeDTO>())
+                        {
+                            <tr>
+                                <td>@ligne.ProduitNom</td>
+                                <td>@ligne.PrixUnitaire.ToString("C")</td>
+                                <td>@ligne.Quantite</td>
+                                <td>@ligne.TotalLigne.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailsModal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal changement statut -->
+<div class="modal fade @(showStatutModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Changer le statut</h5>
+                <button type="button" class="btn-close" @onclick="CloseStatutModal"></button>
+            </div>
+            <div class="modal-body">
+                <select class="form-select" @bind="newStatut">
+                    <option value="EnCours">En cours</option>
+                    <option value="Payee">Payée</option>
+                    <option value="Expediee">Expédiée</option>
+                    <option value="Annulee">Annulée</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseStatutModal">Annuler</button>
+                <button class="btn btn-primary" @onclick="SaveStatut">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CommandeDTO>? commandes;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages => commandes != null ? (int)Math.Ceiling(commandes.Count / (double)pageSize) : 1;
+    private IEnumerable<CommandeDTO> PagedCommandes => commandes?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<CommandeDTO>();
+
+    // Modals
+    private bool showDetailsModal = false;
+    private bool showStatutModal = false;
+    private CommandeDTO? selectedCommande;
+    private string newStatut = "EnCours";
+
+    protected override async Task OnInitializedAsync()
+    {
+        commandes = await CommandesService.GetAllAsync();
+    }
+
+    private void ShowDetailsModal(CommandeDTO c)
+    {
+        selectedCommande = c;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal() => showDetailsModal = false;
+
+    private void ShowStatutModal(CommandeDTO c)
+    {
+        selectedCommande = c;
+        newStatut = c.Statut.Replace(" ", ""); // enlève espaces si nécessaire
+        showStatutModal = true;
+    }
+
+    private void CloseStatutModal() => showStatutModal = false;
+
+    private async Task SaveStatut()
+    {
+        if (selectedCommande != null)
+        {
+            await CommandesService.UpdateStatutAsync(selectedCommande.Id, newStatut);
+            selectedCommande.Statut = newStatut;
+        }
+        showStatutModal = false;
+    }
+
+    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
+    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+    private void GoToPage(int page) => currentPage = page;
+}

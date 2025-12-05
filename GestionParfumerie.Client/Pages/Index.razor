@@ -20,29 +20,31 @@
                 </p>
             </div>
 
-            <div class="row mt-4">
+            <div class="row g-4 mt-3">
+                <!-- Carte Admin -->
                 <AuthorizeView Roles="Admin">
                     <Authorized Context="adminCtx">
                         <div class="col-md-6">
-                            <div class="card">
+                            <div class="card text-white bg-primary h-100">
                                 <div class="card-body">
                                     <h5 class="card-title">🔧 Panel Admin</h5>
-                                    <p class="card-text">Gérez les utilisateurs et les produits</p>
-                                    <a href="/admin" class="btn btn-primary">Accéder au panel</a>
+                                    <p class="card-text">Gérez les utilisateurs, produits, catégories, fournisseurs et commandes</p>
+                                    <a href="/admin" class="btn btn-light">Accéder au panel</a>
                                 </div>
                             </div>
                         </div>
                     </Authorized>
                 </AuthorizeView>
 
+                <!-- Carte Client -->
                 <AuthorizeView Roles="Client">
                     <Authorized Context="clientCtx">
                         <div class="col-md-6">
-                            <div class="card">
+                            <div class="card text-white bg-success h-100">
                                 <div class="card-body">
                                     <h5 class="card-title">🛍️ Produits</h5>
                                     <p class="card-text">Découvrez notre catalogue de parfums</p>
-                                    <a href="/products" class="btn btn-success">Voir les produits</a>
+                                    <a href="/products" class="btn btn-light">Voir les produits</a>
                                 </div>
                             </div>
                         </div>
@@ -50,5 +52,14 @@
                 </AuthorizeView>
             </div>
         </Authorized>
+
+        <NotAuthorized>
+            <div class="alert alert-info mt-4">
+                <h4>Bienvenue 👋</h4>
+                <p>Pour accéder aux fonctionnalités, veuillez vous connecter ou créer un compte.</p>
+                <a href="/login" class="btn btn-primary me-2">Connexion</a>
+                <a href="/register" class="btn btn-success">Inscription</a>
+            </div>
+        </NotAuthorized>
     </AuthorizeView>
 </div>

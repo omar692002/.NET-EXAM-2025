@@ -10,9 +10,10 @@ namespace GestionParfumerie.Application.Mapping
         {
             // --- PRODUIT ---
             CreateMap<Produit, ProduitDTO>()
-                .ForMember(dest => dest.CategorieNom, opt => opt.MapFrom(src => src.Categorie.Nom))
-                .ForMember(dest => dest.FournisseurNom, opt => opt.MapFrom(src => src.Fournisseur.Nom))
-                .ForMember(dest => dest.FamilleOlfactiveNom, opt => opt.MapFrom(src => src.FamilleOlfactive.Nom));
+            .ForMember(dest => dest.CategorieNom, opt => opt.MapFrom(src => src.Categorie != null ? src.Categorie.Nom : string.Empty))
+            .ForMember(dest => dest.FournisseurNom, opt => opt.MapFrom(src => src.Fournisseur != null ? src.Fournisseur.Nom : string.Empty))
+            .ForMember(dest => dest.FamilleOlfactiveNom, opt => opt.MapFrom(src => src.FamilleOlfactive != null ? src.FamilleOlfactive.Nom : string.Empty));
+
             CreateMap<ProduitCreateUpdateDTO, Produit>();
 
             // --- CATEGORIE ---
@@ -22,7 +23,8 @@ namespace GestionParfumerie.Application.Mapping
 
             // --- FOURNISSEUR ---
             CreateMap<Fournisseur, FournisseurDTO>()
-                .ForMember(dest => dest.NombreProduits, opt => opt.MapFrom(src => src.Produits.Count));
+            .ForMember(dest => dest.NombreProduits, opt => opt.MapFrom(src => src.Produits.Count))
+            .ForMember(dest => dest.Produits, opt => opt.MapFrom(src => src.Produits));
             CreateMap<FournisseurDTO, Fournisseur>();
 
             // --- FAMILLE OLFACTIVE ---

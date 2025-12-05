@@ -1,0 +1,265 @@
+﻿@page "/admin/fournisseurs"
+@attribute [Authorize(Roles = "Admin")]
+@inject FournisseursService FournisseursService
+
+<h3>Gestion des fournisseurs</h3>
+
+<div class="mb-3 row">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" />
+    </div>
+   
+</div>
+
+@if (fournisseurs == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
+                <th>Nb Produits</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var f in PagedFournisseurs)
+            {
+                <tr>
+                    <td>@f.Id</td>
+                    <td>@f.Nom</td>
+                    <td>@f.Email</td>
+                    <td>@f.Telephone</td>
+                    <td>@f.Adresse</td>
+                    <td>@f.NombreProduits</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm me-1" title="Ajouter" @onclick="ShowCreateModal">
+                            <i class="bi bi-plus-circle"></i> 
+                        </button>
+                        <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(f)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm me-1" title="Supprimer" @onclick="() => Delete(f.Id)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-info btn-sm" title="Voir produits" @onclick="() => ShowProducts(f)">
+                            <i class="bi bi-box-seam"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+            </li>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(currentPage == i ? "active" : "")">
+                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
+                </li>
+            }
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Modal Création / Edition -->
+<div class="modal fade @(showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <input class="form-control" @bind="modalFournisseur.Nom" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" @bind="modalFournisseur.Email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Téléphone</label>
+                    <input class="form-control" @bind="modalFournisseur.Telephone" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Adresse</label>
+                    <input class="form-control" @bind="modalFournisseur.Adresse" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                <button class="btn btn-primary" @onclick="SaveFournisseur">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Produits -->
+@if (showProductsModal && selectedFournisseur != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Produits de @selectedFournisseur.Nom</h5>
+                    <button type="button" class="btn-close" @onclick="CloseProductsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedFournisseur.Produits.Any())
+                    {
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Description</th>
+                                    <th>Prix</th>
+                                    <th>Catégorie</th>
+                                    <th>Famille olfactive</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in selectedFournisseur.Produits)
+                                {
+                                    <tr>
+                                        <td>@p.Id</td>
+                                        <td>@p.Nom</td>
+                                        <td>@p.Description</td>
+                                        <td>@p.Prix €</td>
+                                        <td>@p.CategorieNom</td>
+                                        <td>@p.FamilleOlfactiveNom</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p>Aucun produit disponible.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseProductsModal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<FournisseurDTO>? fournisseurs;
+    private string searchText = "";
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages => FilteredFournisseurs.Any() ? (int)Math.Ceiling(FilteredFournisseurs.Count() / (double)pageSize) : 1;
+    private IEnumerable<FournisseurDTO> FilteredFournisseurs =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? fournisseurs ?? Enumerable.Empty<FournisseurDTO>()
+            : fournisseurs.Where(f => f.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase) || f.Id.ToString() == searchText);
+
+    private IEnumerable<FournisseurDTO> PagedFournisseurs => FilteredFournisseurs.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    // Modal CRUD
+    private bool showModal = false;
+    private string modalTitle = "";
+    private FournisseurDTO modalFournisseur = new FournisseurDTO();
+    private FournisseurDTO? editingFournisseur = null;
+
+    // Modal Produits
+    private FournisseurDTO? selectedFournisseur;
+    private bool showProductsModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        fournisseurs = (await FournisseursService.GetAllAsync()).ToList();
+    }
+
+    private void ShowCreateModal()
+    {
+        modalFournisseur = new FournisseurDTO();
+        editingFournisseur = null;
+        modalTitle = "Nouveau fournisseur";
+        showModal = true;
+    }
+
+    private void ShowEditModal(FournisseurDTO f)
+    {
+        modalFournisseur = new FournisseurDTO
+        {
+            Id = f.Id,
+            Nom = f.Nom,
+            Email = f.Email,
+            Telephone = f.Telephone,
+            Adresse = f.Adresse,
+            NombreProduits = f.NombreProduits,
+            Produits = f.Produits
+        };
+        editingFournisseur = f;
+        modalTitle = "Modifier le fournisseur";
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private async Task SaveFournisseur()
+    {
+        if (editingFournisseur != null)
+        {
+            await FournisseursService.UpdateAsync(editingFournisseur.Id, modalFournisseur);
+
+            editingFournisseur.Nom = modalFournisseur.Nom;
+            editingFournisseur.Email = modalFournisseur.Email;
+            editingFournisseur.Telephone = modalFournisseur.Telephone;
+            editingFournisseur.Adresse = modalFournisseur.Adresse;
+        }
+        else
+        {
+            modalFournisseur.NombreProduits = 0;
+            var created = await FournisseursService.CreateAsync(modalFournisseur);
+            fournisseurs.Add(created);
+        }
+
+        showModal = false;
+    }
+
+    private async Task Delete(int id)
+    {
+        await FournisseursService.DeleteAsync(id);
+        fournisseurs.RemoveAll(f => f.Id == id);
+    }
+
+    private void ShowProducts(FournisseurDTO f)
+    {
+        selectedFournisseur = f;
+        showProductsModal = true;
+    }
+
+    private void CloseProductsModal()
+    {
+        selectedFournisseur = null;
+        showProductsModal = false;
+    }
+
+    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
+    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+    private void GoToPage(int page) => currentPage = page;
+}

@@ -2,6 +2,7 @@
 {
     public class CommandeDTO
     {
+        public int Id { get; set; } 
         public DateTime DateCommande { get; set; }
         public string Statut { get; set; } = "En cours";
         public string UtilisateurEmail { get; set; } = string.Empty;

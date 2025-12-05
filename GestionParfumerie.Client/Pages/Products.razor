@@ -1,57 +1,232 @@
-﻿@page "/products"
-@attribute [Authorize(Roles = "Client,Admin")]
+﻿@page "/admin/produits"
+@attribute [Authorize(Roles = "Admin")]
+@inject ProduitsService ProduitsService
+@inject CategoriesService CategoriesService
+@inject FournisseursService FournisseursService
+@inject FamillesOlfactivesService FamillesService
 
-<PageTitle>Produits</PageTitle>
+<h3>Gestion des produits</h3>
 
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-12">
-            <h1>🛍️ Catalogue de Parfums</h1>
-            <p class="text-muted">Accessible aux clients et administrateurs</p>
-        </div>
+<div class="mb-3 row">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" />
     </div>
-
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Parfum Élégance</h5>
-                    <p class="card-text">Un parfum raffiné aux notes florales</p>
-                    <p class="text-primary fw-bold">89.99 TND</p>
-                    <button class="btn btn-primary">Ajouter au panier</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Parfum Mystère</h5>
-                    <p class="card-text">Des notes boisées et sensuelles</p>
-                    <p class="text-primary fw-bold">109.99 TND</p>
-                    <button class="btn btn-primary">Ajouter au panier</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Parfum Fraîcheur</h5>
-                    <p class="card-text">Une fragrance légère et citronée</p>
-                    <p class="text-primary fw-bold">69.99 TND</p>
-                    <button class="btn btn-primary">Ajouter au panier</button>
-                </div>
-            </div>
-        </div>
+    <div class="col-md-4">
+        <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle"></i> Ajouter un produit
+        </button>
     </div>
-
-    <AuthorizeView Roles="Admin">
-        <Authorized Context="adminUser">
-            <div class="alert alert-warning mt-4">
-                <strong>👑 Mode Admin :</strong> Vous pouvez également modifier ces produits
-                <button class="btn btn-sm btn-warning ms-2">Éditer le catalogue</button>
-            </div>
-        </Authorized>
-    </AuthorizeView>
 </div>
+
+@if (produits == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Description</th>
+                <th>Prix</th>
+                <th>Catégorie</th>
+                <th>Fournisseur</th>
+                <th>Famille olfactive</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in PagedProduits)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Nom</td>
+                    <td>@p.Description</td>
+                    <td>@p.Prix €</td>
+                    <td>@p.CategorieNom</td>
+                    <td>@p.FournisseurNom</td>
+                    <td>@p.FamilleOlfactiveNom</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+            </li>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(currentPage == i ? "active" : "")">
+                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
+                </li>
+            }
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Modal Création / Edition -->
+<div class="modal fade @(showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <input class="form-control" @bind="modalProduit.Nom" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <input class="form-control" @bind="modalProduit.Description" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Prix</label>
+                    <input type="number" step="0.01" class="form-control" @bind="modalProduit.Prix" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Catégorie</label>
+                    <select class="form-select" @bind="modalProduit.CategorieId">
+                        <option value="">-- Choisir --</option>
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c.Id">@c.Nom</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Fournisseur</label>
+                    <select class="form-select" @bind="modalProduit.FournisseurId">
+                        <option value="">-- Choisir --</option>
+                        @foreach (var f in fournisseurs)
+                        {
+                            <option value="@f.Id">@f.Nom</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Famille olfactive</label>
+                    <select class="form-select" @bind="modalProduit.FamilleOlfactiveId">
+                        <option value="">-- Choisir --</option>
+                        @foreach (var fo in familles)
+                        {
+                            <option value="@fo.Id">@fo.Nom</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                <button class="btn btn-primary" @onclick="SaveProduit">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ProduitDTO>? produits;
+    private List<CategorieDTO>? categories;
+    private List<FournisseurDTO>? fournisseurs;
+    private List<FamilleOlfactiveDTO>? familles;
+    private string searchText = "";
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages => FilteredProduits.Any() ? (int)Math.Ceiling(FilteredProduits.Count() / (double)pageSize) : 1;
+    private IEnumerable<ProduitDTO> FilteredProduits =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? produits ?? Enumerable.Empty<ProduitDTO>()
+            : produits.Where(p => p.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == searchText);
+
+    private IEnumerable<ProduitDTO> PagedProduits => FilteredProduits.Skip((currentPage - 1) * pageSize).Take(pageSize);
+
+    // Modal CRUD
+    private bool showModal = false;
+    private string modalTitle = "";
+    private ProduitCreateUpdateDTO modalProduit = new ProduitCreateUpdateDTO();
+    private ProduitDTO? editingProduit = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        produits = (await ProduitsService.GetAllAsync()).ToList();
+        categories = (await CategoriesService.GetAllAsync()).ToList();
+        fournisseurs = (await FournisseursService.GetAllAsync()).ToList();
+        familles = (await FamillesService.GetAllAsync()).ToList();
+    }
+
+    private void ShowCreateModal()
+    {
+        modalProduit = new ProduitCreateUpdateDTO();
+        editingProduit = null;
+        modalTitle = "Nouveau produit";
+        showModal = true;
+    }
+
+    private void ShowEditModal(ProduitDTO p)
+    {
+        modalProduit = new ProduitCreateUpdateDTO
+        {
+            Nom = p.Nom,
+            Description = p.Description,
+            Prix = p.Prix,
+            CategorieId = categories.FirstOrDefault(c => c.Nom == p.CategorieNom)?.Id ?? 0,
+            FournisseurId = fournisseurs.FirstOrDefault(f => f.Nom == p.FournisseurNom)?.Id ?? 0,
+            FamilleOlfactiveId = familles.FirstOrDefault(fa => fa.Nom == p.FamilleOlfactiveNom)?.Id ?? 0
+        };
+        editingProduit = p;
+        modalTitle = "Modifier le produit";
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private async Task SaveProduit()
+    {
+        if (editingProduit != null)
+        {
+            await ProduitsService.UpdateAsync(editingProduit.Id, modalProduit);
+
+            editingProduit.Nom = modalProduit.Nom;
+            editingProduit.Description = modalProduit.Description;
+            editingProduit.Prix = modalProduit.Prix;
+            editingProduit.CategorieNom = categories.FirstOrDefault(c => c.Id == modalProduit.CategorieId)?.Nom ?? "";
+            editingProduit.FournisseurNom = fournisseurs.FirstOrDefault(f => f.Id == modalProduit.FournisseurId)?.Nom ?? "";
+            editingProduit.FamilleOlfactiveNom = familles.FirstOrDefault(fa => fa.Id == modalProduit.FamilleOlfactiveId)?.Nom ?? "";
+        }
+        else
+        {
+            var created = await ProduitsService.CreateAsync(modalProduit);
+            produits.Add(created);
+        }
+
+        showModal = false;
+    }
+
+    private async Task Delete(int id)
+    {
+        await ProduitsService.DeleteAsync(id);
+        produits.RemoveAll(p => p.Id == id);
+    }
+
+    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
+    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+    private void GoToPage(int page) => currentPage = page;
+}

@@ -14,6 +14,7 @@ namespace GestionParfumerie.Controllers
     public class ProduitsController : ControllerBase
     {
         private readonly IProduitRepository _repo;
+  
         private readonly IMapper _mapper;
         private readonly ApplicationDbContext _context;
 
@@ -85,6 +86,6 @@ namespace GestionParfumerie.Controllers
             await _context.SaveChangesAsync();
             return true;
         }
-
+     
     }
 }

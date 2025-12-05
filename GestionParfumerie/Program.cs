@@ -49,7 +49,7 @@ namespace GestionParfumerie
             // ==========================================
             //  CONFIGURATION DU JWT
             // ==========================================
-            var jwtSecret = builder.Configuration["JWT:SecretKey"];
+            var jwtSecret = builder.Configuration["JWT:SecretKey"] ?? throw new InvalidOperationException("JWT Key is not configured");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
             builder.Services.AddAuthentication(options =>
@@ -86,6 +86,8 @@ namespace GestionParfumerie
             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
             builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
             builder.Services.AddScoped<ICommandeService, CommandeService>();
+            builder.Services.AddScoped<IProduitRepository, ProduitRepository>();
+
 
             // ==========================================
             //  CONFIGURATION SWAGGER (avec JWT)

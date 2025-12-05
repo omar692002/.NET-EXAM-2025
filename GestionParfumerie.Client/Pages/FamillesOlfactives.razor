@@ -1,0 +1,171 @@
+﻿@page "/admin/familles-olfactives"
+@attribute [Authorize(Roles = "Admin")]
+@inject FamillesOlfactivesService FamillesService
+
+<h3>Gestion des familles olfactives</h3>
+
+<button class="btn btn-primary mb-3" @onclick="ShowCreateModal">
+    <i class="bi bi-plus-circle"></i> Ajouter une famille
+</button>
+
+@if (familles == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <!-- Tableau paginé -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Nb Produits</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fam in PagedFamilles)
+            {
+                <tr>
+                    <td>@fam.Nom</td>
+                    <td>@fam.NombreProduits</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-1" @onclick="() => ShowEditModal(fam)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(fam.Id)">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination">
+            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+            </li>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(currentPage == i ? "active" : "")">
+                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
+                </li>
+            }
+            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+<!-- Modal Création / Edition -->
+<div class="modal fade @(showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <input class="form-control" @bind="modalFamille.Nom" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                <button class="btn btn-primary" @onclick="SaveFamille">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<FamilleOlfactiveDTO>? familles;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 5;
+    private int totalPages => familles != null ? (int)Math.Ceiling(familles.Count / (double)pageSize) : 1;
+    private IEnumerable<FamilleOlfactiveDTO> PagedFamilles => familles?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<FamilleOlfactiveDTO>();
+
+    // Modal
+    private bool showModal = false;
+    private string modalTitle = "";
+    private FamilleOlfactiveDTO modalFamille = new FamilleOlfactiveDTO();
+    private FamilleOlfactiveDTO? editingFamille = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        familles = await FamillesService.GetAllAsync();
+    }
+
+    private void ShowCreateModal()
+    {
+        modalFamille = new FamilleOlfactiveDTO();
+        editingFamille = null;
+        modalTitle = "Nouvelle famille olfactive";
+        showModal = true;
+    }
+
+    private void ShowEditModal(FamilleOlfactiveDTO fam)
+    {
+        modalFamille = new FamilleOlfactiveDTO
+        {
+            Id = fam.Id,
+            Nom = fam.Nom,
+            NombreProduits = fam.NombreProduits
+        };
+        editingFamille = fam;
+        modalTitle = "Modifier la famille";
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SaveFamille()
+    {
+        if (editingFamille != null)
+        {
+            // Edition
+            await FamillesService.UpdateAsync(modalFamille.Id, modalFamille);
+            editingFamille.Nom = modalFamille.Nom;
+        }
+        else
+        {
+            // Création
+            modalFamille.NombreProduits = 0; // champ calculé initial
+            var created = await FamillesService.CreateAsync(modalFamille);
+            familles.Add(created);
+        }
+
+        showModal = false;
+    }
+
+    private async Task Delete(int id)
+    {
+        await FamillesService.DeleteAsync(id);
+        familles.RemoveAll(f => f.Id == id);
+    }
+
+    private void PrevPage()
+    {
+        if (currentPage > 1) currentPage--;
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages) currentPage++;
+    }
+
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+    }
+}

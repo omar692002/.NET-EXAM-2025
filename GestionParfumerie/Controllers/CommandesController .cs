@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using GestionParfumerie.Application.DTOs;
 using GestionParfumerie.Application.Services;
-using GestionParfumerie.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
