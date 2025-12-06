@@ -46,6 +46,7 @@ namespace GestionParfumerie.Controllers
                 DateNaissance = model.DateNaissance,
                 Adresse = model.Adresse,
                 PhoneNumber = model.PhoneNumber,
+                CreatedAt= DateTime.UtcNow,
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);

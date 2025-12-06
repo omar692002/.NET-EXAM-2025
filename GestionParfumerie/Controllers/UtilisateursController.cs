@@ -183,5 +183,33 @@ namespace GestionParfumerie.Controllers
 
             return Ok(stats);
         }
+
+
+        // ==========================================
+        // ADMIN : Mettre à jour un utilisateur
+        // ==========================================
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateUtilisateur(string id, [FromBody] UtilisateurDTO updatedUserDto)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound("Utilisateur non trouvé");
+
+            // Mettre à jour les champs
+            user.Nom = updatedUserDto.Nom;
+            user.Prenom = updatedUserDto.Prenom;
+            user.Email = updatedUserDto.Email;
+            user.UserName = updatedUserDto.Email; // si username = email
+            user.PhoneNumber = updatedUserDto.PhoneNumber;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors.Select(e => e.Description));
+            }
+
+            return Ok();
+        }
+
     }
 }

@@ -132,5 +132,19 @@ namespace GestionParfumerie.Client.Services
 
             return null;
         }
+
+
+        // ==========================================
+        // Mettre à jour un utilisateur
+        // ==========================================
+        public async Task<bool> UpdateAsync(string id, UtilisateurDTO updatedUser)
+        {
+            await AddAuthorizationHeader();
+
+            var response = await _httpClient.PutAsJsonAsync($"api/utilisateurs/{id}", updatedUser);
+
+            return response.IsSuccessStatusCode;
+        }
+
     }
 }

@@ -1,0 +1,122 @@
+﻿@page "/profile"
+@inject UtilisateursService UserService
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
+
+<h3>Mon Profil</h3>
+
+@if (user == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <div class="card p-3 mb-3">
+        <p><strong>Nom :</strong> @user.Nom</p>
+        <p><strong>Prénom :</strong> @user.Prenom</p>
+        <p><strong>Email :</strong> @user.Email</p>
+        <p><strong>Téléphone :</strong> @(user.PhoneNumber ?? "N/A")</p>
+
+        @if (isAdmin)
+        {
+            <button class="btn btn-sm btn-primary mt-2" @onclick="EditProfile">✏️ Éditer</button>
+        }
+    </div>
+}
+
+<!-- Modal simple édition -->
+@if (showEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Éditer Profil</h5>
+                    <button type="button" class="btn-close" @onclick="CloseEditModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom</label>
+                        <input class="form-control" @bind="editUser.Nom" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prénom</label>
+                        <input class="form-control" @bind="editUser.Prenom" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input class="form-control" @bind="editUser.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone</label>
+                        <input class="form-control" @bind="editUser.PhoneNumber" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseEditModal">Annuler</button>
+                    <button class="btn btn-success" @onclick="SaveEdit">Sauvegarder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private UtilisateurDTO? user;
+    private bool isAdmin = false;
+
+    // Modal édition
+    private bool showEditModal = false;
+    private UtilisateurDTO editUser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var principal = await AuthService.GetClaimsPrincipalAsync();
+        var userId = principal.FindFirst("sub")?.Value; // ou "id"
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            user = await UserService.GetByIdAsync(userId);
+            isAdmin = principal.IsInRole("Admin");
+        }
+    }
+
+    private void EditProfile()
+    {
+        if (user != null)
+        {
+            editUser = new UtilisateurDTO
+            {
+                Id = user.Id,
+                Nom = user.Nom,
+                Prenom = user.Prenom,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber
+            };
+            showEditModal = true;
+        }
+    }
+
+    private void CloseEditModal() => showEditModal = false;
+
+    private async Task SaveEdit()
+    {
+        if (editUser != null)
+        {
+            var success = await UserService.UpdateAsync(editUser.Id, editUser);
+
+            if (success)
+            {
+                user = await UserService.GetByIdAsync(editUser.Id);
+                showEditModal = false;
+            }
+            else
+            {
+                // Afficher un message d'erreur simple
+                await JSRuntime.InvokeVoidAsync("alert", "Erreur lors de la mise à jour !");
+            }
+        }
+    }
+
+}
