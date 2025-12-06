@@ -2,6 +2,8 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject FamillesOlfactivesService FamillesService
 @inject IJSRuntime JSRuntime
+@using Client.Helpers
+
 
 <h3>Gestion des familles olfactives</h3>
 
@@ -128,11 +130,15 @@ else
                                             <td>
                                                 @if (!string.IsNullOrEmpty(p.PhotoPath))
                                                 {
-                                                    <img src="@p.PhotoPath" alt="@p.Nom" style="height:50px;" />
+                                                    <img src="@ImageHelper.GetImageUrl(p.PhotoPath)"
+                                                         alt="@p.Nom"
+                                                         style="height:50px; width:50px; object-fit: cover; border-radius: 4px;" />
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">Aucune</span>
+                                                    <div style="height: 50px; width: 50px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-image" style="font-size: 20px; color: #6c757d;"></i>
+                                                    </div>
                                                 }
                                             </td>
                                         </tr>
@@ -226,8 +232,25 @@ else
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer cette famille olfactive ?"))
         {
-            await FamillesService.DeleteAsync(id);
-            familles?.RemoveAll(f => f.Id == id);
+            try
+            {
+                await FamillesService.DeleteAsync(id);
+
+                familles = await FamillesService.GetAllAsync();
+
+                if (showProductsModal && selectedFamille?.Id == id)
+                {
+                    CloseProductsModal();
+                }
+
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                // Optionnel : afficher un message d'erreur
+                Console.WriteLine($"Erreur lors de la suppression : {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", "Erreur lors de la suppression");
+            }
         }
     }
 

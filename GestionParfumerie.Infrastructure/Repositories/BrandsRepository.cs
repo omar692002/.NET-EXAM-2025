@@ -6,11 +6,11 @@ using GestionParfumerie.Application.Interfaces;
 
 namespace GestionParfumerie.Infrastructure.Repositories
 {
-    public class FournisseursRepository : IBrandsRepository
+    public class BrandsRepository : IBrandsRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public FournisseursRepository(ApplicationDbContext context)
+        public BrandsRepository(ApplicationDbContext context)
         {
             _context = context;
         }
@@ -18,16 +18,21 @@ namespace GestionParfumerie.Infrastructure.Repositories
         // --- Get all suppliers ---
         public async Task<IEnumerable<Brand>> GetAllAsync()
         {
-            return await _context.Fournisseurs
-                .Include(f => f.Produits) 
+            return await _context.Fournisseurs  // ou Brands selon votre DbSet
+                .Include(b => b.Produits)
+                    .ThenInclude(p => p.Categorie)
+                .Include(b => b.Produits)
+                    .ThenInclude(p => p.ProduitFamilles)
+                        .ThenInclude(pf => pf.FamilleOlfactive)
                 .ToListAsync();
         }
-
         // --- Get supplier by Id ---
         public async Task<Brand?> GetByIdAsync(int id)
         {
             return await _context.Fournisseurs
                 .Include(f => f.Produits)
+                    .ThenInclude(p => p.ProduitFamilles)
+                        .ThenInclude(pf => pf.FamilleOlfactive)
                 .FirstOrDefaultAsync(f => f.Id == id);
         }
 

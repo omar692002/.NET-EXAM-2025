@@ -37,17 +37,23 @@ namespace GestionParfumerie.Application.Mapping
 
             // --- BRAND ---
             CreateMap<Brand, BrandsDTO>()
-                .ForMember(dest => dest.NombreProduits, opt => opt.MapFrom(src => src.Produits.Count))
-                .ForMember(dest => dest.Nom, opt => opt.MapFrom(src => src.Nom))
-                .ForMember(dest => dest.Produits, opt => opt.Ignore());
-            CreateMap<BrandsDTO, Brand>();
+           .ForMember(dest => dest.NombreProduits,
+               opt => opt.MapFrom(src => src.Produits.Count))
+           .ForMember(dest => dest.Produits,
+               opt => opt.MapFrom(src => src.Produits));
+            CreateMap<BrandsDTO, Brand>()
+         .ForMember(dest => dest.Produits, opt => opt.Ignore());
 
             // --- FAMILLE OLFACTIVE ---
             CreateMap<FamilleOlfactive, FamilleOlfactiveDTO>()
-                .ForMember(dest => dest.NombreProduits, opt => opt.MapFrom(src => src.ProduitFamilles.Count))
-                .ForMember(dest => dest.Nom, opt => opt.MapFrom(src => src.Nom))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
-            CreateMap<FamilleOlfactiveDTO, FamilleOlfactive>();
+             .ForMember(dest => dest.NombreProduits,
+                 opt => opt.MapFrom(src => src.ProduitFamilles.Count))
+             .ForMember(dest => dest.Produits,
+                 opt => opt.MapFrom(src => src.ProduitFamilles
+                     .Select(pf => pf.Produit)  
+                     .ToList()));
+            CreateMap<FamilleOlfactiveDTO, FamilleOlfactive>()
+           .ForMember(dest => dest.ProduitFamilles, opt => opt.Ignore());
 
             // --- LIGNE COMMANDE ---
             CreateMap<LigneCommande, LigneCommandeDTO>()

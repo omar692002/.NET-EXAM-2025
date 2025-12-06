@@ -19,6 +19,14 @@ namespace GestionParfumerie.Infrastructure.Repositories
             return await _context.FamillesOlfactives
                 .Include(f => f.ProduitFamilles)
                     .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.Brand)  // ✅ Charger le Brand
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.Categorie)  // ✅ Charger la Categorie
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.ProduitFamilles)  // ✅ Charger les autres familles
+                            .ThenInclude(pf2 => pf2.FamilleOlfactive)
                 .ToListAsync();
         }
 
@@ -27,6 +35,14 @@ namespace GestionParfumerie.Infrastructure.Repositories
             return await _context.FamillesOlfactives
                 .Include(f => f.ProduitFamilles)
                     .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.Brand)
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.Categorie)
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                        .ThenInclude(p => p.ProduitFamilles)
+                            .ThenInclude(pf2 => pf2.FamilleOlfactive)
                 .FirstOrDefaultAsync(f => f.Id == id);
         }
 

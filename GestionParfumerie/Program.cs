@@ -82,7 +82,7 @@ namespace GestionParfumerie
             builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
             builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
             builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
-            builder.Services.AddScoped<IBrandsRepository, FournisseursRepository>();
+            builder.Services.AddScoped<IBrandsRepository, BrandsRepository>();
             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
             builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
             builder.Services.AddScoped<ICommandeService, CommandeService>();

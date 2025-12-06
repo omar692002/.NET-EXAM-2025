@@ -1,0 +1,301 @@
+﻿@page "/admin/Brands"
+@attribute [Authorize(Roles = "Admin")]
+@using Client.Helpers
+@inject BrandsService BrandsService
+@inject IJSRuntime JSRuntime
+
+<h3>Gestion des Brands</h3>
+
+<div class="mb-3 row">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" @bind:event="oninput" />
+    </div>
+    <div class="col-md-4">
+        <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle"></i> Ajouter un Brand
+        </button>
+    </div>
+</div>
+
+@if (brands == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <div style="max-height: @(FilteredBrands.Count() > 10 ? "600px" : "auto"); overflow-y: @(FilteredBrands.Count() > 10 ? "auto" : "visible");">
+        <table class="table table-striped">
+            <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Adresse</th>
+                    <th>Nb Produits</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var brand in FilteredBrands)
+                {
+                    <tr>
+                        <td>@brand.Id</td>
+                        <td>@brand.Nom</td>
+                        <td>@brand.Email</td>
+                        <td>@brand.Adresse</td>
+                        <td>@brand.NombreProduits</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(brand)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm me-1" title="Supprimer" @onclick="() => Delete(brand.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <button class="btn btn-info btn-sm" title="Voir produits" @onclick="() => ShowProducts(brand)">
+                                <i class="bi bi-box-seam"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (FilteredBrands.Count() > 10)
+    {
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-info-circle"></i> @FilteredBrands.Count() brands affichés (scroll pour voir plus)
+        </div>
+    }
+}
+
+<!-- Modal Création / Edition -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom</label>
+                        <input class="form-control" @bind="modalBrand.Nom" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" @bind="modalBrand.Email" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Adresse</label>
+                        <input class="form-control" @bind="modalBrand.Adresse" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="SaveBrand">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Produits par Brand -->
+@if (showProductsModal && selectedBrand != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Produits de @selectedBrand.Nom</h5>
+                    <button type="button" class="btn-close" @onclick="CloseProductsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedBrand.Produits != null && selectedBrand.Produits.Any())
+                    {
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-bordered">
+                                <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nom</th>
+                                        <th>Description</th>
+                                        <th>Prix</th>
+                                        <th>Catégorie</th>
+                                        <th>Familles olfactives</th>
+                                        <th>Photo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in selectedBrand.Produits)
+                                    {
+                                        <tr>
+                                            <td>@p.Id</td>
+                                            <td>@p.Nom</td>
+                                            <td>@p.Description</td>
+                                            <td>@p.Prix.ToString("F2") €</td>
+                                            <td>@p.CategorieNom</td>
+                                            <td>@string.Join(", ", p.FamillesOlfactives)</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(p.PhotoPath))
+                                                {
+                                                    <img src="@ImageHelper.GetImageUrl(p.PhotoPath)"
+                                                         alt="@p.Nom"
+                                                         style="height:50px; width:50px; object-fit: cover; border-radius: 4px;" />
+                                                }
+                                                else
+                                                {
+                                                    <div style="height: 50px; width: 50px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="bi bi-image" style="font-size: 20px; color: #6c757d;"></i>
+                                                    </div>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Aucun produit disponible pour ce brand.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseProductsModal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BrandsDTO>? brands;
+    private string searchText = "";
+
+    private IEnumerable<BrandsDTO> FilteredBrands =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? brands ?? Enumerable.Empty<BrandsDTO>()
+            : (brands ?? Enumerable.Empty<BrandsDTO>())
+                .Where(b => b.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                         || b.Id.ToString() == searchText);
+
+    // Modal CRUD
+    private bool showModal = false;
+    private string modalTitle = "";
+    private BrandsDTO modalBrand = new BrandsDTO();
+    private BrandsDTO? editingBrand = null;
+
+    // Modal produits
+    private BrandsDTO? selectedBrand;
+    private bool showProductsModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        brands = (await BrandsService.GetAllAsync()).ToList();
+    }
+
+    private void ShowCreateModal()
+    {
+        modalBrand = new BrandsDTO();
+        editingBrand = null;
+        modalTitle = "Nouveau Brand";
+        showModal = true;
+    }
+
+    private void ShowEditModal(BrandsDTO brand)
+    {
+        modalBrand = new BrandsDTO
+        {
+            Id = brand.Id,
+            Nom = brand.Nom,
+            Email = brand.Email,
+            Adresse = brand.Adresse,
+            NombreProduits = brand.NombreProduits,
+            Produits = brand.Produits
+        };
+        editingBrand = brand;
+        modalTitle = "Modifier le Brand";
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private async Task SaveBrand()
+    {
+        try
+        {
+            if (editingBrand != null)
+            {
+                await BrandsService.UpdateAsync(editingBrand.Id, modalBrand);
+                editingBrand.Nom = modalBrand.Nom;
+                editingBrand.Email = modalBrand.Email;
+                editingBrand.Adresse = modalBrand.Adresse;
+            }
+            else
+            {
+                modalBrand.NombreProduits = 0;
+                var created = await BrandsService.CreateAsync(modalBrand);
+                brands?.Add(created);
+            }
+            showModal = false;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur lors de la sauvegarde : {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Erreur lors de la sauvegarde");
+        }
+    }
+
+    private async Task Delete(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer ce brand ?"))
+        {
+            try
+            {
+                await BrandsService.DeleteAsync(id);
+
+                // ✅ Recharger toutes les données
+                brands = (await BrandsService.GetAllAsync()).ToList();
+
+                // ✅ Mettre à jour le modal si ouvert
+                if (showProductsModal && selectedBrand != null)
+                {
+                    var updatedBrand = brands?.FirstOrDefault(b => b.Id == selectedBrand.Id);
+
+                    if (updatedBrand != null)
+                    {
+                        selectedBrand = updatedBrand;
+                    }
+                    else
+                    {
+                        CloseProductsModal();
+                    }
+                }
+
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", "Erreur lors de la suppression");
+            }
+        }
+    }
+
+    private void ShowProducts(BrandsDTO brand)
+    {
+        selectedBrand = brands?.FirstOrDefault(b => b.Id == brand.Id);
+        showProductsModal = true;
+    }
+
+    private void CloseProductsModal()
+    {
+        selectedBrand = null;
+        showProductsModal = false;
+    }
+}

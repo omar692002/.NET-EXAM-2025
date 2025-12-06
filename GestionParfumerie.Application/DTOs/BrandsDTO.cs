@@ -9,7 +9,7 @@
 
         // Calculé
         public int NombreProduits { get; set; }
-        public List<ProduitDTO> Produits { get; set; } = new();
+        public List<ProduitDTO> Produits { get; set; } = new List<ProduitDTO>();
 
     }
 
