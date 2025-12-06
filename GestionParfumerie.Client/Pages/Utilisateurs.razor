@@ -1,0 +1,417 @@
+﻿@page "/admin/utilisateurs"
+@attribute [Authorize(Roles = "Admin")]
+@inject UtilisateursService UtilisateursService
+@inject NavigationManager Navigation
+
+<h3>Gestion des utilisateurs</h3>
+
+@if (utilisateurs == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <!-- Barre de recherche -->
+    <div class="row mb-3">
+        <div class="col-md-5">
+            <input type="text" class="form-control" placeholder="Rechercher par email..." @bind="searchEmail" @bind:event="oninput" @onkeyup="SearchUtilisateurs" />
+        </div>
+        <div class="col-md-5">
+            <input type="text" class="form-control" placeholder="Rechercher par nom..." @bind="searchNom" @bind:event="oninput" @onkeyup="SearchUtilisateurs" />
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-secondary w-100" @onclick="ClearSearch">🔄 Réinitialiser</button>
+        </div>
+    </div>
+
+    <div class="table-container" style="@(utilisateurs.Count > 10 ? "max-height: 600px; overflow-y: auto;" : "")">
+        <table class="table table-striped">
+            <thead style="position: sticky; top: 0; background-color: #fff; z-index: 10;">
+                <tr>
+                    <th>Email</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Téléphone</th>
+                    <th>Rôles</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in utilisateurs)
+                {
+                    <tr>
+                        <td>@user.Email</td>
+                        <td>@user.Nom</td>
+                        <td>@user.Prenom</td>
+                        <td>@(user.PhoneNumber ?? "N/A")</td>
+                        <td>
+                            @foreach (var role in user.Roles)
+                            {
+                                <span class="badge bg-@GetRoleColor(role) me-1">@role</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-info me-1" @onclick="() => ShowDetailsModal(user)">
+                                👁️ Détails
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" @onclick="() => ShowCommandesModal(user)">
+                                📦 Commandes
+                            </button>
+                            <button class="btn btn-sm btn-success" @onclick="() => ShowStatsModal(user)">
+                                📊 Stats
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-3">
+        <small class="text-muted">Total : @utilisateurs.Count utilisateur(s)</small>
+    </div>
+}
+
+<!-- Modal détails utilisateur -->
+<div class="modal fade @(showDetailsModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de l'utilisateur</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailsModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedUtilisateur != null)
+                {
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>Email :</strong> @selectedUtilisateur.Email</p>
+                            <p><strong>Nom :</strong> @selectedUtilisateur.Nom</p>
+                            <p><strong>Prénom :</strong> @selectedUtilisateur.Prenom</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Téléphone :</strong> @(selectedUtilisateur.PhoneNumber ?? "N/A")</p>
+                            <p><strong>Date de naissance :</strong> @(selectedUtilisateur.DateNaissance?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                            <p><strong>Adresse :</strong> @(selectedUtilisateur.Adresse ?? "N/A")</p>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Rôles :</strong>
+                        @foreach (var role in selectedUtilisateur.Roles)
+                        {
+                            <span class="badge bg-@GetRoleColor(role) me-1">@role</span>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDetailsModal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal commandes utilisateur -->
+<div class="modal fade @(showCommandesModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Commandes de @selectedUtilisateur?.Prenom @selectedUtilisateur?.Nom</h5>
+                <button type="button" class="btn-close" @onclick="CloseCommandesModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (commandesUtilisateur == null)
+                {
+                    <p>Chargement des commandes...</p>
+                }
+                else if (!commandesUtilisateur.Any())
+                {
+                    <p class="text-muted">Aucune commande pour cet utilisateur.</p>
+                }
+                else
+                {
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead style="position: sticky; top: 0; background-color: #fff; z-index: 5;">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Statut</th>
+                                    <th>Articles</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cmd in commandesUtilisateur)
+                                {
+                                    <tr>
+                                        <td>@cmd.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <span class="badge bg-@GetStatutColor(cmd.Statut)">
+                                                @FormatStatut(cmd.Statut)
+                                            </span>
+                                        </td>
+                                        <td>@cmd.NbArticles</td>
+                                        <td>@cmd.Total.ToString("C")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" @onclick="() => ShowLignesCommandeModal(cmd)">
+                                                📋 Détails
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseCommandesModal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal lignes de commande -->
+<div class="modal fade @(showLignesModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de la commande</h5>
+                <button type="button" class="btn-close" @onclick="CloseLignesModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedCommande != null)
+                {
+                    <div class="mb-3">
+                        <p><strong>Date :</strong> @selectedCommande.DateCommande.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>Statut :</strong> <span class="badge bg-@GetStatutColor(selectedCommande.Statut)">@FormatStatut(selectedCommande.Statut)</span></p>
+                    </div>
+
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Prix Unitaire</th>
+                                <th>Quantité</th>
+                                <th>Total Ligne</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ligne in selectedCommande.LigneCommandes ?? Enumerable.Empty<LigneCommandeDTO>())
+                            {
+                                <tr>
+                                    <td>@ligne.ProduitNom</td>
+                                    <td>@ligne.PrixUnitaire.ToString("C")</td>
+                                    <td>@ligne.Quantite</td>
+                                    <td>@ligne.TotalLigne.ToString("C")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total :</strong></td>
+                                <td><strong>@selectedCommande.Total.ToString("C")</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseLignesModal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal statistiques -->
+<div class="modal fade @(showStatsModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Statistiques de @selectedUtilisateur?.Prenom @selectedUtilisateur?.Nom</h5>
+                <button type="button" class="btn-close" @onclick="CloseStatsModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (statsUtilisateur == null)
+                {
+                    <p>Chargement des statistiques...</p>
+                }
+                else
+                {
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h2>@statsUtilisateur.NombreCommandes</h2>
+                                    <p class="mb-0">Commandes totales</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h2>@statsUtilisateur.TotalDepense.ToString("C")</h2>
+                                    <p class="mb-0">Total dépensé</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body">
+                                    <h3>@statsUtilisateur.CommandeEnCours</h3>
+                                    <p class="mb-0">En cours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h3>@statsUtilisateur.CommandeLivree</h3>
+                                    <p class="mb-0">Livrées</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseStatsModal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UtilisateurDTO>? utilisateurs;
+    private List<CommandeDTO>? commandesUtilisateur;
+    private UtilisateurStatsDTO? statsUtilisateur;
+    private CommandeDTO? selectedCommande;
+
+    // Recherche
+    private string searchEmail = "";
+    private string searchNom = "";
+
+    // Modals
+    private bool showDetailsModal = false;
+    private bool showCommandesModal = false;
+    private bool showLignesModal = false;
+    private bool showStatsModal = false;
+    private UtilisateurDTO? selectedUtilisateur;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUtilisateurs();
+    }
+
+    private async Task LoadUtilisateurs()
+    {
+        utilisateurs = await UtilisateursService.GetAllAsync();
+    }
+
+    private async Task SearchUtilisateurs()
+    {
+        if (string.IsNullOrWhiteSpace(searchEmail) && string.IsNullOrWhiteSpace(searchNom))
+        {
+            await LoadUtilisateurs();
+        }
+        else
+        {
+            utilisateurs = await UtilisateursService.SearchAsync(searchEmail, searchNom);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        searchEmail = "";
+        searchNom = "";
+        await LoadUtilisateurs();
+    }
+
+    // ========== Modal Détails ==========
+    private void ShowDetailsModal(UtilisateurDTO user)
+    {
+        selectedUtilisateur = user;
+        showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal() => showDetailsModal = false;
+
+    // ========== Modal Commandes ==========
+    private async Task ShowCommandesModal(UtilisateurDTO user)
+    {
+        selectedUtilisateur = user;
+        commandesUtilisateur = null;
+        showCommandesModal = true;
+        commandesUtilisateur = await UtilisateursService.GetCommandesAsync(user.Id);
+    }
+
+    private void CloseCommandesModal()
+    {
+        showCommandesModal = false;
+        commandesUtilisateur = null;
+    }
+
+    // ========== Modal Lignes de commande ==========
+    private void ShowLignesCommandeModal(CommandeDTO cmd)
+    {
+        selectedCommande = cmd;
+        showLignesModal = true;
+    }
+
+    private void CloseLignesModal()
+    {
+        showLignesModal = false;
+        selectedCommande = null;
+    }
+
+    // ========== Modal Stats ==========
+    private async Task ShowStatsModal(UtilisateurDTO user)
+    {
+        selectedUtilisateur = user;
+        statsUtilisateur = null;
+        showStatsModal = true;
+        statsUtilisateur = await UtilisateursService.GetStatsAsync(user.Id);
+    }
+
+    private void CloseStatsModal()
+    {
+        showStatsModal = false;
+        statsUtilisateur = null;
+    }
+
+    // ========== Helper Methods ==========
+    private string GetRoleColor(string role)
+    {
+        return role switch
+        {
+            "Admin" => "danger",
+            "Client" => "primary",
+            _ => "secondary"
+        };
+    }
+
+    private string GetStatutColor(string statut)
+    {
+        return statut switch
+        {
+            "EnCours" => "warning",
+            "Expediée" => "info",
+            "Livrée" => "success",
+            "Annulée" => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private string FormatStatut(string statut)
+    {
+        return statut switch
+        {
+            "EnCours" => "En cours",
+            "Expediée" => "Expédiée",
+            "Livrée" => "Livrée",
+            "Annulée" => "Annulée",
+            _ => statut
+        };
+    }
+}

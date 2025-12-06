@@ -1,30 +1,29 @@
 ﻿using GestionParfumerie.Client.Models;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using Blazored.LocalStorage;
 
 namespace GestionParfumerie.Client.Services
 {
     public class AuthService
     {
         private readonly HttpClient _http;
-        private readonly IJSRuntime _js;
+        private readonly ILocalStorageService _localStorage;
         private readonly NavigationManager _navManager;
         private const string TOKEN_KEY = "authToken";
 
-        // Ajoutez NavigationManager dans le constructeur
-        public AuthService(HttpClient http, IJSRuntime js, NavigationManager navManager)
+        public AuthService(HttpClient http, ILocalStorageService localStorage, NavigationManager navManager)
         {
             _http = http;
-            _js = js;
+            _localStorage = localStorage;
             _navManager = navManager;
         }
 
         // ==========================================
-        //  REGISTER
+        // REGISTER
         // ==========================================
         public async Task<AuthResult> Register(RegisterDTO model)
         {
@@ -38,24 +37,16 @@ namespace GestionParfumerie.Client.Services
                 }
 
                 var error = await response.Content.ReadAsStringAsync();
-                return new AuthResult
-                {
-                    Success = false,
-                    ErrorMessage = error
-                };
+                return new AuthResult { Success = false, ErrorMessage = error };
             }
             catch (Exception ex)
             {
-                return new AuthResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Erreur: {ex.Message}"
-                };
+                return new AuthResult { Success = false, ErrorMessage = $"Erreur: {ex.Message}" };
             }
         }
 
         // ==========================================
-        //  LOGIN
+        // LOGIN
         // ==========================================
         public async Task<AuthResult> Login(string email, string password)
         {
@@ -77,15 +68,11 @@ namespace GestionParfumerie.Client.Services
 
                 if (string.IsNullOrEmpty(result?.Token))
                 {
-                    return new AuthResult
-                    {
-                        Success = false,
-                        ErrorMessage = "Token invalide"
-                    };
+                    return new AuthResult { Success = false, ErrorMessage = "Token invalide" };
                 }
 
                 // Sauvegarder le token
-                await _js.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, result.Token);
+                await _localStorage.SetItemAsync(TOKEN_KEY, result.Token);
 
                 // Configurer le header Authorization
                 _http.DefaultRequestHeaders.Authorization =
@@ -104,34 +91,25 @@ namespace GestionParfumerie.Client.Services
         }
 
         // ==========================================
-        //  LOGOUT
+        // LOGOUT
         // ==========================================
         public async Task Logout()
         {
-            await _js.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
+            await _localStorage.RemoveItemAsync(TOKEN_KEY);
             _http.DefaultRequestHeaders.Authorization = null;
-
-            // Rediriger vers la page de login
             _navManager.NavigateTo("/login");
         }
 
         // ==========================================
-        //  GET TOKEN
+        // GET TOKEN
         // ==========================================
         public async Task<string?> GetTokenAsync()
         {
-            try
-            {
-                return await _js.InvokeAsync<string>("localStorage.getItem", TOKEN_KEY);
-            }
-            catch
-            {
-                return null;
-            }
+            return await _localStorage.GetItemAsync<string>(TOKEN_KEY);
         }
 
         // ==========================================
-        //  GET CLAIMS PRINCIPAL
+        // GET CLAIMS PRINCIPAL
         // ==========================================
         public async Task<ClaimsPrincipal> GetClaimsPrincipalAsync()
         {
@@ -145,7 +123,6 @@ namespace GestionParfumerie.Client.Services
                 var handler = new JwtSecurityTokenHandler();
                 var jwt = handler.ReadJwtToken(token);
 
-                // Vérifier l'expiration
                 if (jwt.ValidTo < DateTime.UtcNow)
                 {
                     await Logout();
@@ -154,7 +131,6 @@ namespace GestionParfumerie.Client.Services
 
                 var claims = jwt.Claims;
                 var identity = new ClaimsIdentity(claims, "jwt");
-
                 return new ClaimsPrincipal(identity);
             }
             catch
@@ -165,7 +141,7 @@ namespace GestionParfumerie.Client.Services
         }
 
         // ==========================================
-        //  INITIALIZE (Restaurer le token au démarrage)
+        // INITIALIZE (Restaurer le token au démarrage)
         // ==========================================
         public async Task InitializeAsync()
         {
@@ -177,6 +153,7 @@ namespace GestionParfumerie.Client.Services
                 {
                     var handler = new JwtSecurityTokenHandler();
                     var jwt = handler.ReadJwtToken(token);
+
                     if (jwt.ValidTo > DateTime.UtcNow)
                     {
                         _http.DefaultRequestHeaders.Authorization =
@@ -196,7 +173,7 @@ namespace GestionParfumerie.Client.Services
     }
 
     // ==========================================
-    //  MODELS
+    // MODELS
     // ==========================================
     public class LoginResponse
     {

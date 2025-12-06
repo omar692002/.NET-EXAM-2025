@@ -64,6 +64,7 @@ namespace GestionParfumerie.Application.Mapping
             // --- COMMANDE ---
             CreateMap<Commande, CommandeDTO>()
                 .ForMember(dest => dest.UtilisateurEmail, opt => opt.MapFrom(src => src.Utilisateur.Email))
+                .ForMember(dest => dest.UtilisateurId, opt => opt.MapFrom(src => src.UtilisateurId))
                 .ForMember(dest => dest.NbArticles, opt => opt.MapFrom(src => src.LigneCommandes.Sum(l => l.Quantite)))
                 .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.LigneCommandes.Sum(l => l.Quantite * l.PrixUnitaire)));
         }

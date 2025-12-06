@@ -3,6 +3,7 @@ using GestionParfumerie.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Blazored.LocalStorage;
 
 namespace GestionParfumerie.Client
 {
@@ -31,6 +32,8 @@ namespace GestionParfumerie.Client
             builder.Services.AddScoped<BrandsService>();
             builder.Services.AddScoped<CommandesService>();
             builder.Services.AddScoped<ImageUploadService>();
+            builder.Services.AddBlazoredLocalStorage();
+            builder.Services.AddScoped<UtilisateursService>();
             ImageHelper.Initialize("http://localhost:5155/");
 
 
