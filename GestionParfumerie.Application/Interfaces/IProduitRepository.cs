@@ -5,10 +5,16 @@ namespace GestionParfumerie.Application.Interfaces
 {
     public interface IProduitRepository
     {
-        Task<IEnumerable<Produit>> GetAllAsync();
-        Task<Produit> GetByIdAsync(int id);
-        Task AddAsync(Produit produit);
+        Task<IEnumerable<Produit>> GetAllWithRelationsAsync();
+        Task<Produit?> GetByIdWithRelationsAsync(int id);
+        Task<Produit> AddAsync(Produit produit);
+        Task<Produit?> GetByIdAsync(int id);
         Task UpdateAsync(Produit produit);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(Produit produit);
+        Task<bool> HasOrdersAsync(int produitId);
+
+        // Méthodes pour gérer les familles olfactives
+        Task AddFamillesAsync(int produitId, IEnumerable<int> familleIds);
+        Task RemoveAllFamillesAsync(int produitId);
     }
 }

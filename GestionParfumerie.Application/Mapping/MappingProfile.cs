@@ -10,21 +10,29 @@ namespace GestionParfumerie.Application.Mapping
         {
             // --- PRODUIT ---
             CreateMap<Produit, ProduitDTO>()
-         .ForMember(dest => dest.CategorieNom, opt => opt.MapFrom(src => src.Categorie.Nom))
-         .ForMember(dest => dest.BrandNom, opt => opt.MapFrom(src => src.Brand.Nom))
-         .ForMember(dest => dest.FamillesOlfactives,
-             opt => opt.MapFrom(src => src.ProduitFamilles.Select(pf => pf.FamilleOlfactive.Nom).ToList()))
-         .ForMember(dest => dest.Prix, opt => opt.MapFrom(src => src.Prix));
+              .ForMember(dest => dest.CategorieNom,
+                  opt => opt.MapFrom(src => src.Categorie.Nom))
+              .ForMember(dest => dest.BrandNom,
+                  opt => opt.MapFrom(src => src.Brand.Nom))
+              .ForMember(dest => dest.FamillesOlfactives,
+                  opt => opt.MapFrom(src => src.ProduitFamilles
+                      .Select(pf => pf.FamilleOlfactive.Nom)
+                      .ToList()));
 
+            // Mapping ProduitCreateUpdateDTO -> Produit (pour la création/modification)
             CreateMap<ProduitCreateUpdateDTO, Produit>()
-                .ForMember(dest => dest.ProduitFamilles, opt => opt.Ignore()) // many-to-many géré dans le service
-                .ForMember(dest => dest.DateAjout, opt => opt.MapFrom(src => DateTime.Now));
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Categorie, opt => opt.Ignore())
+                .ForMember(dest => dest.Brand, opt => opt.Ignore())
+                .ForMember(dest => dest.ProduitFamilles, opt => opt.Ignore()) 
+                .ForMember(dest => dest.LigneCommandes, opt => opt.Ignore());
 
             // --- CATEGORIE ---
             CreateMap<Categorie, CategorieDTO>()
-                .ForMember(dest => dest.NombreProduits, opt => opt.MapFrom(src => src.Produits.Count))
-                .ForMember(dest => dest.Nom, opt => opt.MapFrom(src => src.Nom))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
+             .ForMember(dest => dest.NombreProduits,
+                 opt => opt.MapFrom(src => src.Produits.Count))
+             .ForMember(dest => dest.Produits,
+                 opt => opt.MapFrom(src => src.Produits));
             CreateMap<CategorieDTO, Categorie>();
 
             // --- BRAND ---

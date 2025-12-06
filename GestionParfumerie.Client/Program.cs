@@ -1,3 +1,4 @@
+using GestionParfumerie.Client.Helpers;
 using GestionParfumerie.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -29,6 +30,8 @@ namespace GestionParfumerie.Client
             builder.Services.AddScoped<ProduitsService>();
             builder.Services.AddScoped<BrandsService>();
             builder.Services.AddScoped<CommandesService>();
+            builder.Services.AddScoped<ImageUploadService>();
+            ImageHelper.Initialize("http://localhost:5155/");
 
 
 

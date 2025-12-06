@@ -1,15 +1,18 @@
 ﻿@page "/admin/produits"
 @attribute [Authorize(Roles = "Admin")]
+@using Client.Helpers
 @inject ProduitsService ProduitsService
 @inject CategoriesService CategoriesService
 @inject BrandsService BrandsService
 @inject FamillesOlfactivesService FamillesService
+@inject ImageUploadService ImageUploadService
+@inject IJSRuntime JSRuntime
 
 <h3>Gestion des produits</h3>
 
 <div class="mb-3 row">
     <div class="col-md-4">
-        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" />
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" @bind:event="oninput" />
     </div>
     <div class="col-md-4">
         <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
@@ -24,127 +27,207 @@
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nom</th>
-                <th>Description</th>
-                <th>Prix</th>
-                <th>Catégorie</th>
-                <th>Brand</th>
-                <th>Familles olfactives</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in PagedProduits)
-            {
+    <div style="max-height: @(FilteredProduits.Count() > 10 ? "600px" : "auto"); overflow-y: @(FilteredProduits.Count() > 10 ? "auto" : "visible");">
+        <table class="table table-striped">
+            <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
                 <tr>
-                    <td>@p.Id</td>
-                    <td>@p.Nom</td>
-                    <td>@p.Description</td>
-                    <td>@p.Prix €</td>
-                    <td>@p.CategorieNom</td>
-                    <td>@p.BrandNom</td>
-                    <td>
-                        @foreach (var fam in p.FamillesOlfactives)
-                        {
-                            <span>@fam</span>@if(fam != p.FamillesOlfactives.Last()){
-                            <span>, </span>
-                        }
-                    }
-                </td>
-                <td>
-                    <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                    <th>ID</th>
+                    <th>Photo</th>
+                    <th>Nom</th>
+                    <th>Description</th>
+                    <th>Prix</th>
+                    <th>Stock</th>
+                    <th>Catégorie</th>
+                    <th>Brand</th>
+                    <th>Familles olfactives</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in FilteredProduits)
+                {
+                    <tr>
+                        <td>@p.Id</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(p.PhotoPath))
+                            {
+                                <img src="@ImageHelper.GetImageUrl(p.PhotoPath)" alt="@p.Nom" style="height: 50px; width: 50px; object-fit: cover; border-radius: 4px;" />
+                            }
+                            else
+                            {
+                                <div style="height: 50px; width: 50px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-image" style="font-size: 20px; color: #6c757d;"></i>
+                                </div>
+                            }
+                        </td>
+                        <td>@p.Nom</td>
+                        <td>@p.Description</td>
+                        <td>@p.Prix.ToString("F2") €</td>
+                        <td>@p.QuantiteEnStock</td>
+                        <td>@p.CategorieNom</td>
+                        <td>@p.BrandNom</td>
+                        <td>@string.Join(", ", p.FamillesOlfactives)</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-<!-- Pagination -->
-<nav>
-    <ul class="pagination">
-        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-            <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
-        </li>
-        @for (int i = 1; i <= totalPages; i++)
-        {
-            <li class="page-item @(currentPage == i ? "active" : "")">
-                <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
-            </li>
-        }
-        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-            <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
-        </li>
-    </ul>
-</nav>
+    @if (FilteredProduits.Count() > 10)
+    {
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-info-circle"></i> @FilteredProduits.Count() produits affichés (scroll pour voir plus)
+        </div>
+    }
 }
 
 <!-- Modal Création / Edition -->
-<div class="modal fade @(showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@modalTitle</h5>
-                <button type="button" class="btn-close" @onclick="CloseModal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Nom</label>
-                    <input class="form-control" @bind="modalProduit.Nom" />
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <input class="form-control" @bind="modalProduit.Description" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Nom *</label>
+                                <input class="form-control" @bind="modalProduit.Nom" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" @bind="modalProduit.Description" rows="3"></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Prix (€) *</label>
+                                        <input type="number" step="0.01" class="form-control" @bind="modalProduit.Prix" required />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Quantité en stock *</label>
+                                        <input type="number" class="form-control" @bind="modalProduit.QuantiteEnStock" required />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Catégorie *</label>
+                                <select class="form-select" @bind="modalProduit.CategorieId" required>
+                                    <option value="0">-- Choisir --</option>
+                                    @foreach (var c in categories ?? Enumerable.Empty<CategorieDTO>())
+                                    {
+                                        <option value="@c.Id">@c.Nom</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Brand *</label>
+                                <select class="form-select" @bind="modalProduit.BrandId" required>
+                                    <option value="0">-- Choisir --</option>
+                                    @foreach (var f in fournisseurs ?? Enumerable.Empty<BrandsDTO>())
+                                    {
+                                        <option value="@f.Id">@f.Nom</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Familles olfactives</label>
+                                <div style="max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px;">
+                                    @foreach (var fo in familles ?? Enumerable.Empty<FamilleOlfactiveDTO>())
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="famille_@fo.Id"
+                                                   checked="@modalProduit.FamillesOlfactivesIds.Contains(fo.Id)"
+                                                   @onchange="e => ToggleFamille(fo.Id, e)" />
+                                            <label class="form-check-label" for="famille_@fo.Id">
+                                                @fo.Nom
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Photo du produit</label>
+                                <InputFile OnChange="OnFileSelected" class="form-control" accept="image/*" />
+                                <small class="text-muted">Max 5 MB (jpg, png, gif, webp)</small>
+                            </div>
+
+                            @if (isUploading)
+                            {
+                                <div class="text-center my-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Chargement...</span>
+                                    </div>
+                                    <p class="mt-2">Upload en cours...</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(uploadError))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    @uploadError
+                                    <button type="button" class="btn-close" @onclick="() => uploadError = null"></button>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(modalProduit.PhotoPath))
+                            {
+                                <div class="card mt-3">
+                                    <div class="card-body text-center">
+                                        <img src="@ImageHelper.GetImageUrl(modalProduit.PhotoPath)"
+                                             alt="Aperçu"
+                                             style="max-width: 100%; max-height: 200px; border-radius: 8px;" />
+                                        <button type="button" class="btn btn-danger btn-sm mt-2 w-100" @onclick="RemoveImage">
+                                            <i class="bi bi-trash"></i> Supprimer l'image
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="card mt-3 bg-light">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-image" style="font-size: 48px; color: #6c757d;"></i>
+                                        <p class="text-muted mt-2">Aucune image</p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Prix</label>
-                    <input type="number" step="0.01" class="form-control" @bind="modalProduit.Prix" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Catégorie</label>
-                    <select class="form-select" @bind="modalProduit.CategorieId">
-                        <option value="">-- Choisir --</option>
-                        @foreach (var c in categories ?? Enumerable.Empty<CategorieDTO>())
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="SaveProduit" disabled="@isUploading">
+                        @if (isUploading)
                         {
-                            <option value="@c.Id">@c.Nom</option>
+                            <span class="spinner-border spinner-border-sm me-2"></span>
                         }
-                    </select>
+                        Enregistrer
+                    </button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Brand</label>
-                    <select class="form-select" @bind="modalProduit.BrandId">
-                        <option value="">-- Choisir --</option>
-                        @foreach (var f in fournisseurs ?? Enumerable.Empty<BrandsDTO>())
-                        {
-                            <option value="@f.Id">@f.Nom</option>
-                        }
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Familles olfactives</label>
-                    <select class="form-select" multiple @bind="modalProduit.FamillesOlfactivesIds">
-                        @foreach (var fo in familles ?? Enumerable.Empty<FamilleOlfactiveDTO>())
-                        {
-                            <option value="@fo.Id">@fo.Nom</option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
-                <button class="btn btn-primary" @onclick="SaveProduit">Enregistrer</button>
             </div>
         </div>
     </div>
-</div>
+}
 
 @code {
     private List<ProduitDTO>? produits;
@@ -153,23 +236,23 @@ else
     private List<FamilleOlfactiveDTO>? familles;
     private string searchText = "";
 
-    // Pagination
-    private int currentPage = 1;
-    private int pageSize = 5;
-    private int totalPages => FilteredProduits.Any() ? (int)Math.Ceiling(FilteredProduits.Count() / (double)pageSize) : 1;
     private IEnumerable<ProduitDTO> FilteredProduits =>
         string.IsNullOrWhiteSpace(searchText)
             ? produits ?? Enumerable.Empty<ProduitDTO>()
             : (produits ?? Enumerable.Empty<ProduitDTO>())
-                .Where(p => p.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == searchText);
-
-    private IEnumerable<ProduitDTO> PagedProduits => FilteredProduits.Skip((currentPage - 1) * pageSize).Take(pageSize);
+                .Where(p => p.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                         || p.Id.ToString() == searchText);
 
     // Modal CRUD
     private bool showModal = false;
     private string modalTitle = "";
     private ProduitCreateUpdateDTO modalProduit = new ProduitCreateUpdateDTO();
     private ProduitDTO? editingProduit = null;
+
+    // Upload
+    private bool isUploading = false;
+    private string? uploadError = null;
+    private string? oldPhotoPath = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -183,8 +266,10 @@ else
     {
         modalProduit = new ProduitCreateUpdateDTO();
         editingProduit = null;
+        oldPhotoPath = null;
         modalTitle = "Nouveau produit";
         showModal = true;
+        uploadError = null;
     }
 
     private void ShowEditModal(ProduitDTO p)
@@ -194,50 +279,140 @@ else
             Nom = p.Nom,
             Description = p.Description,
             Prix = p.Prix,
+            QuantiteEnStock = p.QuantiteEnStock,
             CategorieId = categories?.FirstOrDefault(c => c.Nom == p.CategorieNom)?.Id ?? 0,
             BrandId = fournisseurs?.FirstOrDefault(f => f.Nom == p.BrandNom)?.Id ?? 0,
             FamillesOlfactivesIds = familles?
                 .Where(fa => p.FamillesOlfactives.Contains(fa.Nom))
-                .Select(fa => fa.Id).ToList() ?? new List<int>()
+                .Select(fa => fa.Id).ToList() ?? new List<int>(),
+            PhotoPath = p.PhotoPath
         };
         editingProduit = p;
+        oldPhotoPath = p.PhotoPath;
         modalTitle = "Modifier le produit";
         showModal = true;
+        uploadError = null;
     }
 
-    private void CloseModal() => showModal = false;
-
-    private async Task SaveProduit()
+    private void CloseModal()
     {
-        if (editingProduit != null)
-        {
-            await ProduitsService.UpdateAsync(editingProduit.Id, modalProduit);
+        showModal = false;
+        uploadError = null;
+    }
 
-            editingProduit.Nom = modalProduit.Nom;
-            editingProduit.Description = modalProduit.Description;
-            editingProduit.Prix = modalProduit.Prix;
-            editingProduit.CategorieNom = categories?.FirstOrDefault(c => c.Id == modalProduit.CategorieId)?.Nom ?? "";
-            editingProduit.BrandNom = fournisseurs?.FirstOrDefault(f => f.Id == modalProduit.BrandId)?.Nom ?? "";
-            editingProduit.FamillesOlfactives = familles?
-                .Where(fa => modalProduit.FamillesOlfactivesIds.Contains(fa.Id))
-                .Select(fa => fa.Nom).ToList() ?? new List<string>();
+    private void ToggleFamille(int familleId, ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            if (!modalProduit.FamillesOlfactivesIds.Contains(familleId))
+                modalProduit.FamillesOlfactivesIds.Add(familleId);
         }
         else
         {
-            var created = await ProduitsService.CreateAsync(modalProduit);
-            produits.Add(created);
+            modalProduit.FamillesOlfactivesIds.Remove(familleId);
         }
+    }
 
-        showModal = false;
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        isUploading = true;
+
+        try
+        {
+            var file = e.File;
+            var uploadedPath = await ImageUploadService.UploadImageAsync(file);
+
+            if (uploadedPath != null)
+            {
+                // Si on modifie et qu'il y avait une ancienne image différente, on la supprime
+                if (!string.IsNullOrEmpty(modalProduit.PhotoPath) && modalProduit.PhotoPath != oldPhotoPath)
+                {
+                    await ImageUploadService.DeleteImageAsync(modalProduit.PhotoPath);
+                }
+
+                modalProduit.PhotoPath = uploadedPath;
+            }
+            else
+            {
+                uploadError = "Erreur lors de l'upload du fichier.";
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadError = ex.Message;
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private async Task RemoveImage()
+    {
+        if (!string.IsNullOrEmpty(modalProduit.PhotoPath) && modalProduit.PhotoPath != oldPhotoPath)
+        {
+            await ImageUploadService.DeleteImageAsync(modalProduit.PhotoPath);
+        }
+        modalProduit.PhotoPath = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveProduit()
+    {
+        try
+        {
+            if (editingProduit != null)
+            {
+                // Si on a changé l'image, supprimer l'ancienne
+                if (!string.IsNullOrEmpty(oldPhotoPath) && oldPhotoPath != modalProduit.PhotoPath)
+                {
+                    await ImageUploadService.DeleteImageAsync(oldPhotoPath);
+                }
+
+                await ProduitsService.UpdateAsync(editingProduit.Id, modalProduit);
+
+                // Mise à jour locale
+                editingProduit.Nom = modalProduit.Nom;
+                editingProduit.Description = modalProduit.Description;
+                editingProduit.Prix = modalProduit.Prix;
+                editingProduit.QuantiteEnStock = modalProduit.QuantiteEnStock;
+                editingProduit.CategorieNom = categories?.FirstOrDefault(c => c.Id == modalProduit.CategorieId)?.Nom ?? "";
+                editingProduit.BrandNom = fournisseurs?.FirstOrDefault(f => f.Id == modalProduit.BrandId)?.Nom ?? "";
+                editingProduit.FamillesOlfactives = familles?
+                    .Where(fa => modalProduit.FamillesOlfactivesIds.Contains(fa.Id))
+                    .Select(fa => fa.Nom).ToList() ?? new List<string>();
+                editingProduit.PhotoPath = modalProduit.PhotoPath;
+            }
+            else
+            {
+                // CRÉATION : Recharger tous les produits après création
+                await ProduitsService.CreateAsync(modalProduit);
+
+                // Recharger la liste complète pour avoir les noms mappés correctement
+                produits = (await ProduitsService.GetAllAsync()).ToList();
+            }
+
+            showModal = false;
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Erreur lors de la sauvegarde : {ex.Message}";
+        }
     }
 
     private async Task Delete(int id)
     {
-        await ProduitsService.DeleteAsync(id);
-        produits.RemoveAll(p => p.Id == id);
-    }
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer ce produit ?"))
+        {
+            var produit = produits?.FirstOrDefault(p => p.Id == id);
+            if (produit != null && !string.IsNullOrEmpty(produit.PhotoPath))
+            {
+                await ImageUploadService.DeleteImageAsync(produit.PhotoPath);
+            }
 
-    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
-    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
-    private void GoToPage(int page) => currentPage = page;
+            await ProduitsService.DeleteAsync(id);
+            produits?.RemoveAll(p => p.Id == id);
+        }
+    }
 }

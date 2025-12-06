@@ -10,7 +10,7 @@
         public int CategorieId { get; set; }
         public int BrandId { get; set; }
 
-        public List<int> FamillesOlfactivesIds { get; set; } = new();
+        public List<int> FamillesOlfactivesIds { get; set; } = new List<int>();
 
         public string? PhotoPath { get; set; }
     }

@@ -15,19 +15,29 @@ namespace GestionParfumerie.Infrastructure.Repositories
         public async Task<IEnumerable<Categorie>> GetAllAsync()
         {
             return await _context.Categories
-                                    .Include(c => c.Produits)
-                                    .ToListAsync();
+                .Include(c => c.Produits)
+                    .ThenInclude(p => p.Brand)  
+                .Include(c => c.Produits)
+                    .ThenInclude(p => p.ProduitFamilles)
+                        .ThenInclude(pf => pf.FamilleOlfactive)
+                .ToListAsync();
         }
 
-        public async Task<Categorie> GetByIdAsync(int id)
+        public async Task<Categorie?> GetByIdAsync(int id)
         {
-            return await _context.Categories.FirstOrDefaultAsync(p => p.Id == id);
+            return await _context.Categories
+                .Include(c => c.Produits)
+                    .ThenInclude(p => p.Brand)
+                .Include(c => c.Produits)
+                    .ThenInclude(p => p.ProduitFamilles)
+                        .ThenInclude(pf => pf.FamilleOlfactive)
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
-
-        public async Task AddAsync(Categorie categorie)
+        public async Task<Categorie> AddAsync(Categorie categorie)
         {
             _context.Categories.Add(categorie);
             await _context.SaveChangesAsync();
+            return categorie;
         }
 
         public async Task UpdateAsync(Categorie categorie)
@@ -44,6 +54,10 @@ namespace GestionParfumerie.Infrastructure.Repositories
                 _context.Categories.Remove(categorie);
                 await _context.SaveChangesAsync();
             }
+        }
+        public async Task<bool> HasProductsAsync(int categorieId)
+        {
+            return await _context.Produits.AnyAsync(p => p.CategorieId == categorieId);
         }
     }
 }

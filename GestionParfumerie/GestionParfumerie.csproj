@@ -22,4 +22,8 @@
     <ProjectReference Include="..\GestionParfumerie.Application\GestionParfumerie.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\produits\" />
+  </ItemGroup>
+
 </Project>

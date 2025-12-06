@@ -1,16 +1,18 @@
 ﻿@page "/admin/categories"
 @attribute [Authorize(Roles = "Admin")]
 @inject CategoriesService CategoriesService
+@inject IJSRuntime JSRuntime
+@using Client.Helpers
 
 <h3>Gestion des catégories</h3>
 
 <div class="mb-3 row">
     <div class="col-md-4">
-        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" />
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" @bind:event="oninput" />
     </div>
-    <div class="col-md-4 text-end">
-        <button class="btn btn-primary" @onclick="ShowCreateModal">
-            <i class="bi bi-plus-circle"></i> Ajouter
+    <div class="col-md-4">
+        <button class="btn btn-primary btn-sm" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle"></i> Ajouter une catégorie
         </button>
     </div>
 </div>
@@ -21,84 +23,78 @@
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nom</th>
-                <th>Description</th>
-                <th>Nb Produits</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var cat in PagedCategories)
-            {
+    <div style="max-height: @(FilteredCategories.Count() > 10 ? "600px" : "auto"); overflow-y: @(FilteredCategories.Count() > 10 ? "auto" : "visible");">
+        <table class="table table-striped">
+            <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
                 <tr>
-                    <td>@cat.Id</td>
-                    <td>@cat.Nom</td>
-                    <td>@cat.Description</td>
-                    <td>@cat.NombreProduits</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(cat)">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm me-1" title="Supprimer" @onclick="() => Delete(cat.Id)">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                        <button class="btn btn-info btn-sm" title="Voir produits" @onclick="() => ShowProducts(cat)">
-                            <i class="bi bi-box-seam"></i>
-                        </button>
-                    </td>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Description</th>
+                    <th>Nb Produits</th>
+                    <th>Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var cat in FilteredCategories)
+                {
+                    <tr>
+                        <td>@cat.Id</td>
+                        <td>@cat.Nom</td>
+                        <td>@cat.Description</td>
+                        <td>@cat.NombreProduits</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(cat)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm me-1" title="Supprimer" @onclick="() => Delete(cat.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <button class="btn btn-info btn-sm" title="Voir produits" @onclick="() => ShowProducts(cat)">
+                                <i class="bi bi-box-seam"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-    <!-- Pagination -->
-    <nav>
-        <ul class="pagination">
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
-            </li>
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                <li class="page-item @(currentPage == i ? "active" : "")">
-                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
-                </li>
-            }
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
-            </li>
-        </ul>
-    </nav>
+    @if (FilteredCategories.Count() > 10)
+    {
+        <div class="alert alert-info mt-2">
+            <i class="bi bi-info-circle"></i> @FilteredCategories.Count() catégories affichées (scroll pour voir plus)
+        </div>
+    }
 }
 
 <!-- Modal Création / Edition -->
-<div class="modal fade @(showModal ? "show d-block" : "")" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@modalTitle</h5>
-                <button type="button" class="btn-close" @onclick="CloseModal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Nom</label>
-                    <input class="form-control" @bind="modalCategory.Nom" />
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@modalTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-control" @bind="modalCategory.Description"></textarea>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom</label>
+                        <input class="form-control" @bind="modalCategory.Nom" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" @bind="modalCategory.Description" rows="3"></textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
-                <button class="btn btn-primary" @onclick="SaveCategory">Enregistrer</button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                    <button class="btn btn-primary" @onclick="SaveCategory">Enregistrer</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 <!-- Modal Produits par catégorie -->
 @if (showProductsModal && selectedCategory != null)
@@ -113,42 +109,52 @@ else
                 <div class="modal-body">
                     @if (selectedCategory.Produits.Any())
                     {
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nom</th>
-                                    <th>Description</th>
-                                    <th>Prix</th>
-                                    <th>Brand</th>
-                                    <th>Familles olfactives</th>
-                                    <th>Photo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var p in selectedCategory.Produits)
-                                {
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-bordered">
+                                <thead style="position: sticky; top: 0; background-color: white; z-index: 10;">
                                     <tr>
-                                        <td>@p.Id</td>
-                                        <td>@p.Nom</td>
-                                        <td>@p.Description</td>
-                                        <td>@p.Prix</td>
-                                        <td>@p.BrandNom</td>
-                                        <td>@string.Join(", ", p.FamillesOlfactives.Select(f => f))</td>
-                                        <td>
-                                            @if (!string.IsNullOrEmpty(p.PhotoPath))
-                                            {
-                                                <img src="@p.PhotoPath" alt="@p.Nom" style="height:50px;" />
-                                            }
-                                        </td>
+                                        <th>ID</th>
+                                        <th>Nom</th>
+                                        <th>Description</th>
+                                        <th>Prix</th>
+                                        <th>Brand</th>
+                                        <th>Familles olfactives</th>
+                                        <th>Photo</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in selectedCategory.Produits)
+                                    {
+                                        <tr>
+                                            <td>@p.Id</td>
+                                            <td>@p.Nom</td>
+                                            <td>@p.Description</td>
+                                            <td>@p.Prix.ToString("F2") €</td>
+                                            <td>@p.BrandNom</td>
+                                            <td>@string.Join(", ", p.FamillesOlfactives)</td>
+                                            <td>
+
+                                             @if (!string.IsNullOrEmpty(p.PhotoPath))
+                                                {
+                                                    <img src="@ImageHelper.GetImageUrl(p.PhotoPath)" alt="@p.Nom"
+                                                         style="height:50px; width:50px; object-fit: cover; border-radius: 4px;" />
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Aucune</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else
                     {
-                        <p>Aucun produit disponible pour cette catégorie.</p>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Aucun produit disponible pour cette catégorie.
+                        </div>
                     }
                 </div>
                 <div class="modal-footer">
@@ -163,16 +169,12 @@ else
     private List<CategorieDTO>? categories;
     private string searchText = "";
 
-    // Pagination
-    private int currentPage = 1;
-    private int pageSize = 5;
-    private int totalPages => FilteredCategories.Any() ? (int)Math.Ceiling(FilteredCategories.Count() / (double)pageSize) : 1;
     private IEnumerable<CategorieDTO> FilteredCategories =>
         string.IsNullOrWhiteSpace(searchText)
             ? categories ?? Enumerable.Empty<CategorieDTO>()
-            : categories.Where(c => c.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase)
-                                  || c.Id.ToString() == searchText);
-    private IEnumerable<CategorieDTO> PagedCategories => FilteredCategories.Skip((currentPage - 1) * pageSize).Take(pageSize);
+            : (categories ?? Enumerable.Empty<CategorieDTO>())
+                .Where(c => c.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                         || c.Id.ToString() == searchText);
 
     // Modal CRUD
     private bool showModal = false;
@@ -226,22 +228,20 @@ else
         {
             modalCategory.NombreProduits = 0;
             var created = await CategoriesService.CreateAsync(modalCategory);
-            categories.Add(created);
+            categories?.Add(created);
         }
         showModal = false;
     }
 
     private async Task Delete(int id)
     {
-        await CategoriesService.DeleteAsync(id);
-        categories.RemoveAll(c => c.Id == id);
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer cette catégorie ?"))
+        {
+            await CategoriesService.DeleteAsync(id);
+            categories?.RemoveAll(c => c.Id == id);
+        }
     }
 
-    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
-    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
-    private void GoToPage(int page) => currentPage = page;
-
-    // Produits modal
     private void ShowProducts(CategorieDTO cat)
     {
         selectedCategory = cat;

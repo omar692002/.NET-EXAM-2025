@@ -86,7 +86,10 @@ namespace GestionParfumerie
             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
             builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
             builder.Services.AddScoped<ICommandeService, CommandeService>();
+            builder.Services.AddScoped<IProduitService, ProduitService>();
+
             builder.Services.AddScoped<IProduitRepository, ProduitRepository>();
+            builder.Services.AddHttpContextAccessor();
 
 
             // ==========================================
@@ -123,7 +126,7 @@ namespace GestionParfumerie
             });
 
             var app = builder.Build();
-
+            app.UseStaticFiles();
             // ==========================================
             //  SEED DES RÔLES ET ADMIN/CLIENT
             // ==========================================

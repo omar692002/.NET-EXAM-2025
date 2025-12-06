@@ -11,8 +11,9 @@ namespace GestionParfumerie.Application.Interfaces
     {
         Task<IEnumerable<Categorie>> GetAllAsync();
         Task<Categorie> GetByIdAsync(int id);
-        Task AddAsync(Categorie categorie);
+        Task<Categorie> AddAsync(Categorie categorie);
         Task UpdateAsync(Categorie categorie);
         Task DeleteAsync(int id);
+        Task<bool> HasProductsAsync(int categorieID);
     }
 }

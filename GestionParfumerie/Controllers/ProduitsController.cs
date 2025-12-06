@@ -1,11 +1,9 @@
-﻿using AutoMapper;
-using GestionParfumerie.Application.DTOs;
-using GestionParfumerie.Domain.Entities;
+﻿using GestionParfumerie.Application.DTOs;
 using GestionParfumerie.Application.Interfaces;
+using GestionParfumerie.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using GestionParfumerie.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+
 namespace GestionParfumerie.Controllers
 {
     [Authorize]
@@ -13,79 +11,85 @@ namespace GestionParfumerie.Controllers
     [Route("api/[controller]")]
     public class ProduitsController : ControllerBase
     {
-        private readonly IProduitRepository _repo;
-  
-        private readonly IMapper _mapper;
-        private readonly ApplicationDbContext _context;
+        private readonly IProduitService _produitService;
 
-        public ProduitsController(IProduitRepository repo, IMapper mapper, ApplicationDbContext context)
+        public ProduitsController(IProduitService produitService)
         {
-            _repo = repo;
-            _mapper = mapper;
-            _context = context;
+            _produitService = produitService;
         }
 
         [HttpGet]
         [Authorize(Roles = "Admin,Client")]
         public async Task<IActionResult> GetAll()
         {
-            var produits = await _repo.GetAllAsync();
-            var dto = _mapper.Map<IEnumerable<ProduitDTO>>(produits);
-            return Ok(dto);
+            var produits = await _produitService.GetAllAsync();
+            return Ok(produits);
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Client")]
         public async Task<IActionResult> GetById(int id)
         {
-            var produit = await _repo.GetByIdAsync(id);
-            if (produit == null) return NotFound();
-            return Ok(_mapper.Map<ProduitDTO>(produit));
+            var produit = await _produitService.GetByIdAsync(id);
+            if (produit == null)
+                return NotFound();
+
+            return Ok(produit);
         }
+
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] ProduitCreateUpdateDTO model)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] ProduitCreateUpdateDTO dto)
         {
-            var produit = _mapper.Map<Produit>(model);
-
-            await _repo.AddAsync(produit);
-
-            var result = _mapper.Map<ProduitDTO>(produit);
-
-            return CreatedAtAction(nameof(GetById), new { id = produit.Id }, result);
+            try
+            {
+                var produit = await _produitService.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = produit.Id }, produit);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Update(int id, [FromBody] ProduitCreateUpdateDTO model)
+        public async Task<IActionResult> Update(int id, [FromBody] ProduitCreateUpdateDTO dto)
         {
-            var existing = await _repo.GetByIdAsync(id);
-            if (existing == null) return NotFound();
+            try
+            {
+                var success = await _produitService.UpdateAsync(id, dto);
+                if (!success)
+                    return NotFound();
 
-            // Met à jour l'entité existante
-            _mapper.Map(model, existing);
-
-            await _repo.UpdateAsync(existing);
-
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var produit = await _context.Produits
-                              .Include(p => p.LigneCommandes)
-                              .FirstOrDefaultAsync(p => p.Id == id);
+            try
+            {
+                var success = await _produitService.DeleteAsync(id);
+                if (!success)
+                    return NotFound();
 
-            if (produit == null)
-                return false;
-
-            if (produit.LigneCommandes.Any())
-                throw new InvalidOperationException("Impossible de supprimer un produit déjà utilisé dans une commande.");
-
-            _context.Produits.Remove(produit);
-            await _context.SaveChangesAsync();
-            return true;
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
-     
     }
 }
