@@ -1,5 +1,6 @@
 ﻿using GestionParfumerie.Application.DTOs;
 using GestionParfumerie.Application.Interfaces;
+using GestionParfumerie.Domain.Enums;
 
 namespace GestionParfumerie.Application.Services
 {
@@ -35,10 +36,11 @@ namespace GestionParfumerie.Application.Services
             stats.NombreTotalClients = await _utilisateurRepository.GetTotalClientsCountAsync();
             stats.NombreTotalProduits = await _produitRepository.GetTotalCountAsync();
 
-            // Commandes par statut
-            stats.CommandesEnCours = commandes.Count(c => c.Statut.ToString() == "En cours");
-            stats.CommandesLivrees = commandes.Count(c => c.Statut.ToString() == "Livrée");
-            stats.CommandesAnnulees = commandes.Count(c => c.Statut.ToString() == "Annulée");
+            // Commandes par statut (utiliser l'enum)
+            stats.CommandesEnCours = commandes.Count(c => c.Statut == StatutCommande.EnCours);
+            stats.CommandesExpediees = commandes.Count(c => c.Statut == StatutCommande.Expediée);
+            stats.CommandesLivrees = commandes.Count(c => c.Statut == StatutCommande.Livrée);
+            stats.CommandesAnnulees = commandes.Count(c => c.Statut == StatutCommande.Annulée);
 
             // Statistiques du mois courant
             var commandesMoisCourant = commandes.Where(c => c.DateCommande >= debutMoisCourant).ToList();

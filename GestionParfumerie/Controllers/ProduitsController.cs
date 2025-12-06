@@ -76,11 +76,12 @@ namespace GestionParfumerie.Controllers
         {
             try
             {
-                var success = await _produitService.DeleteAsync(id);
-                if (!success)
-                    return NotFound();
-
+                await _produitService.DeleteAsync(id);
                 return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -88,7 +89,7 @@ namespace GestionParfumerie.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Une erreur est survenue lors de la suppression du produit.", details = ex.Message });
             }
         }
     }

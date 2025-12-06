@@ -8,6 +8,6 @@ namespace GestionParfumerie.Application.Services
         Task<ProduitDTO?> GetByIdAsync(int id);
         Task<ProduitDTO> CreateAsync(ProduitCreateUpdateDTO dto);
         Task<bool> UpdateAsync(int id, ProduitCreateUpdateDTO dto);
-        Task<bool> DeleteAsync(int id);
+        Task DeleteAsync(int id);
     }
 }

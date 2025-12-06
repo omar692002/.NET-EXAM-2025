@@ -1,5 +1,7 @@
-﻿using System.Net.Http.Json;
-using GestionParfumerie.Application.DTOs;
+﻿using GestionParfumerie.Application.DTOs;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 namespace GestionParfumerie.Client.Services
 {
     public class ProduitsService
@@ -42,7 +44,23 @@ namespace GestionParfumerie.Client.Services
         public async Task DeleteAsync(int id)
         {
             var response = await _http.DeleteAsync($"api/produits/{id}");
-            response.EnsureSuccessStatusCode();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+
+                try
+                {
+                    var errorResponse = JsonSerializer.Deserialize<ErrorResponse>(errorContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    throw new Exception(errorResponse?.Message ?? "Erreur lors de la suppression du produit.");
+                }
+                catch (JsonException)
+                {
+                    throw new Exception($"Erreur lors de la suppression du produit. Status: {response.StatusCode}");
+                }
+            }
         }
 
         public async Task<List<CategorieDTO>> GetAllCategoriesAsync()

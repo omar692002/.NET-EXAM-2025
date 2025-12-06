@@ -21,7 +21,7 @@
     {
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-2"></i>
-            Ce dashboard est réservé aux administrateurs. En tant que client, vous pouvez consulter vos commandes dans la section "Mes commandes".
+            Bienvenu cette page est en maintenance.
         </div>
     }
     else if (stats != null)
@@ -110,7 +110,7 @@
 
         <!-- Statuts des commandes -->
         <div class="row mb-4">
-            <div class="col-md-4 mb-4">
+            <div class="col-md-3 mb-4">
                 <div class="card shadow">
                     <div class="card-body text-center">
                         <h6 class="text-warning">En cours</h6>
@@ -118,7 +118,15 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-3 mb-4">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <h6 class="text-info">Expédiées</h6>
+                        <h3 class="fw-bold">@stats.CommandesExpediees</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-4">
                 <div class="card shadow">
                     <div class="card-body text-center">
                         <h6 class="text-success">Livrées</h6>
@@ -126,7 +134,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-3 mb-4">
                 <div class="card shadow">
                     <div class="card-body text-center">
                         <h6 class="text-danger">Annulées</h6>
@@ -244,7 +252,7 @@
                                                 <td>@string.Join(", ", cmd.LigneCommandes.Select(l => l.ProduitNom))</td>
                                                 <td>
                                                     <span class="badge bg-@GetStatusBadgeClass(cmd.Statut)">
-                                                        @cmd.Statut
+                                                        @GetStatusLabel(cmd.Statut)
                                                     </span>
                                                 </td>
                                                 <td class="text-end fw-bold">@cmd.Total.ToString("C", new CultureInfo("fr-FR"))</td>
@@ -311,10 +319,20 @@
 
     private string GetStatusBadgeClass(string statut) => statut switch
     {
-        "En cours" => "warning",
+        "EnCours" => "warning",
+        "Expediée" => "info",
         "Livrée" => "success",
         "Annulée" => "danger",
         _ => "secondary"
+    };
+
+    private string GetStatusLabel(string statut) => statut switch
+    {
+        "EnCours" => "En cours",
+        "Expediée" => "Expédiée",
+        "Livrée" => "Livrée",
+        "Annulée" => "Annulée",
+        _ => statut
     };
 
     public static class JwtParser

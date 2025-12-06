@@ -81,7 +81,6 @@ namespace GestionParfumerie
             // ==========================================
             builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
             builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
-            builder.Services.AddScoped<ICommandesRepository, CommandesRepository>();
             builder.Services.AddScoped<IBrandsRepository, BrandsRepository>();
             builder.Services.AddScoped<IFamilleOlfactivesRepository, FamilleOlfactivesRepository>();
             builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
@@ -127,7 +126,7 @@ namespace GestionParfumerie
                     }
                 });
             });
-
+   
             var app = builder.Build();
             app.UseStaticFiles();
             // ==========================================
@@ -172,7 +171,8 @@ namespace GestionParfumerie
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            app.UseCors("AllowBlazorClient");
+            app.UseCors("AllowBlazorClient");  
+
 
             app.UseHttpsRedirection();
             app.UseAuthentication(); // doit être avant UseAuthorization

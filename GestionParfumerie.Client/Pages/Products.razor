@@ -10,6 +10,25 @@
 
 <h3>Gestion des produits</h3>
 
+<!-- Messages d'alerte -->
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        @successMessage
+        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+    </div>
+}
+
 <div class="mb-3 row">
     <div class="col-md-4">
         <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" @bind:event="oninput" />
@@ -71,8 +90,15 @@ else
                             <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
-                                <i class="bi bi-trash"></i>
+                            <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)" disabled="@isDeleting">
+                                @if (isDeleting && deletingId == p.Id)
+                                {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-trash"></i>
+                                }
                             </button>
                         </td>
                     </tr>
@@ -254,6 +280,12 @@ else
     private string? uploadError = null;
     private string? oldPhotoPath = null;
 
+    // Messages et états
+    private string? errorMessage = null;
+    private string? successMessage = null;
+    private bool isDeleting = false;
+    private int deletingId = 0;
+
     protected override async Task OnInitializedAsync()
     {
         produits = (await ProduitsService.GetAllAsync()).ToList();
@@ -270,6 +302,8 @@ else
         modalTitle = "Nouveau produit";
         showModal = true;
         uploadError = null;
+        errorMessage = null;
+        successMessage = null;
     }
 
     private void ShowEditModal(ProduitDTO p)
@@ -292,6 +326,8 @@ else
         modalTitle = "Modifier le produit";
         showModal = true;
         uploadError = null;
+        errorMessage = null;
+        successMessage = null;
     }
 
     private void CloseModal()
@@ -362,6 +398,9 @@ else
     {
         try
         {
+            errorMessage = null;
+            successMessage = null;
+
             if (editingProduit != null)
             {
                 // Si on a changé l'image, supprimer l'ancienne
@@ -383,6 +422,8 @@ else
                     .Where(fa => modalProduit.FamillesOlfactivesIds.Contains(fa.Id))
                     .Select(fa => fa.Nom).ToList() ?? new List<string>();
                 editingProduit.PhotoPath = modalProduit.PhotoPath;
+
+                successMessage = "Produit modifié avec succès.";
             }
             else
             {
@@ -391,6 +432,8 @@ else
 
                 // Recharger la liste complète pour avoir les noms mappés correctement
                 produits = (await ProduitsService.GetAllAsync()).ToList();
+
+                successMessage = "Produit créé avec succès.";
             }
 
             showModal = false;
@@ -405,14 +448,46 @@ else
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer ce produit ?"))
         {
-            var produit = produits?.FirstOrDefault(p => p.Id == id);
-            if (produit != null && !string.IsNullOrEmpty(produit.PhotoPath))
+            try
             {
-                await ImageUploadService.DeleteImageAsync(produit.PhotoPath);
-            }
+                isDeleting = true;
+                deletingId = id;
+                errorMessage = null;
+                successMessage = null;
 
-            await ProduitsService.DeleteAsync(id);
-            produits?.RemoveAll(p => p.Id == id);
+                var produit = produits?.FirstOrDefault(p => p.Id == id);
+
+                // Supprimer le produit via l'API
+                await ProduitsService.DeleteAsync(id);
+
+                // Si succès, supprimer l'image si elle existe
+                if (produit != null && !string.IsNullOrEmpty(produit.PhotoPath))
+                {
+                    try
+                    {
+                        await ImageUploadService.DeleteImageAsync(produit.PhotoPath);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignorer les erreurs de suppression d'image
+                    }
+                }
+
+                // Retirer de la liste locale
+                produits?.RemoveAll(p => p.Id == id);
+
+                successMessage = "Produit supprimé avec succès.";
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            finally
+            {
+                isDeleting = false;
+                deletingId = 0;
+                StateHasChanged();
+            }
         }
     }
 }

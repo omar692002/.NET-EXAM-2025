@@ -85,11 +85,11 @@ namespace GestionParfumerie.Application.Services
             return true;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
             var produit = await _repository.GetByIdAsync(id);
             if (produit == null)
-                return false;
+                throw new KeyNotFoundException($"Le produit avec l'ID {id} n'existe pas.");
 
             // Vérifier si utilisé dans des commandes
             if (await _repository.HasOrdersAsync(id))
@@ -100,7 +100,6 @@ namespace GestionParfumerie.Application.Services
 
             // Supprimer le produit
             await _repository.DeleteAsync(produit);
-            return true;
         }
     }
 }

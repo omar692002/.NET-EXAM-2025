@@ -10,6 +10,7 @@
 
         // Commandes par statut
         public int CommandesEnCours { get; set; }
+        public int CommandesExpediees { get; set; }  // ← AJOUTÉ
         public int CommandesLivrees { get; set; }
         public int CommandesAnnulees { get; set; }
 
