@@ -87,6 +87,9 @@ namespace GestionParfumerie
             builder.Services.AddScoped<ILigneCommandesRepository, LigneCommandesRepository>();
             builder.Services.AddScoped<ICommandeService, CommandeService>();
             builder.Services.AddScoped<IProduitService, ProduitService>();
+            builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+            builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
+
 
             builder.Services.AddScoped<IProduitRepository, ProduitRepository>();
             builder.Services.AddHttpContextAccessor();

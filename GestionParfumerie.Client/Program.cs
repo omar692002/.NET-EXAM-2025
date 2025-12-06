@@ -34,6 +34,8 @@ namespace GestionParfumerie.Client
             builder.Services.AddScoped<ImageUploadService>();
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddScoped<UtilisateursService>();
+            builder.Services.AddScoped<AdminDashboardService>();
+
             ImageHelper.Initialize("http://localhost:5155/");
 
 

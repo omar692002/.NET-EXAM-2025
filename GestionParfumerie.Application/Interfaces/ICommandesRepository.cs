@@ -10,5 +10,6 @@ namespace GestionParfumerie.Application.Interfaces
         Task UpdateAsync(Commande commande);
         Task DeleteAsync(int id);
         Task<IEnumerable<Commande>> GetAllByUtilisateurIdAsync(string utilisateurId);
+        Task<IEnumerable<Commande>> GetAllWithDetailsAsync();
     }
 }

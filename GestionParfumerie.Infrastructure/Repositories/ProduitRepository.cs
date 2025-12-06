@@ -89,5 +89,9 @@ namespace GestionParfumerie.Infrastructure.Repositories
             _context.ProduitFamilleOlfactives.RemoveRange(familles);
             await _context.SaveChangesAsync();
         }
+        public async Task<int> GetTotalCountAsync()
+        {
+            return await _context.Produits.CountAsync();
+        }
     }
 }

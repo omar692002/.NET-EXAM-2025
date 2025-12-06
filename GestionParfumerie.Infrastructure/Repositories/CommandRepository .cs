@@ -77,5 +77,14 @@ namespace GestionParfumerie.Infrastructure.Repositories
                     .ThenInclude(lc => lc.Produit)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Commande>> GetAllWithDetailsAsync()
+        {
+            return await _context.Commandes
+                .Include(c => c.Utilisateur)
+                .Include(c => c.LigneCommandes)
+                    .ThenInclude(lc => lc.Produit)
+                .ToListAsync();
+        }
     }
 }

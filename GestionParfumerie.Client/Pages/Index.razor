@@ -1,310 +1,340 @@
 ﻿@page "/"
 @attribute [Authorize]
 @using System.Globalization
+@using GestionParfumerie.Application.DTOs
+@inject GestionParfumerie.Client.Services.AdminDashboardService dashboardService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 
 <PageTitle>Tableau de bord</PageTitle>
 
 <div class="container-fluid px-4 py-4">
-    <AuthorizeView>
-        <Authorized Context="userCtx">
-            <!-- En-tête de bienvenue -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h3 mb-1">
-                        <i class="fas fa-tachometer-alt me-2"></i>Tableau de bord
-                    </h1>
-                    <p class="text-muted mb-0">
-                        Bon retour, <strong>@userCtx.User.Identity?.Name</strong>
-                        (@string.Join(", ", userCtx.User.Claims.Where(c => c.Type.Contains("role")).Select(c => c.Value)))
-                    </p>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-success">
-                        <i class="fas fa-circle me-1"></i>Connecté
-                    </span>
-                    <div class="small text-muted mt-1">@DateTime.Now.ToString("dddd dd MMMM yyyy", new CultureInfo("fr-FR"))</div>
-                </div>
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
             </div>
-
-            <!-- Cartes de statistiques -->
-            <div class="row mb-4">
-                <!-- Carte Chiffre d'affaires -->
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-start-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">
-                                        Chiffre d'affaires (Mensuel)
-                                    </div>
-                                    <div class="h5 mb-0 fw-bold text-gray-800">@(monthlyRevenue.ToString("C", new CultureInfo("fr-FR")))</div>
-                                    <div class="mt-2 mb-0 text-muted text-xs">
-                                        <span class="text-success me-2">
-                                            <i class="fas fa-arrow-up"></i> 12%
-                                        </span>
-                                        <span>Depuis le mois dernier</span>
-                                    </div>
+            <p class="mt-3">Chargement des statistiques...</p>
+        </div>
+    }
+    else if (isClient)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Ce dashboard est réservé aux administrateurs. En tant que client, vous pouvez consulter vos commandes dans la section "Mes commandes".
+        </div>
+    }
+    else if (stats != null)
+    {
+        <!-- Cartes de statistiques principales -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-start-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                    Chiffre d'affaires total
                                 </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-euro-sign fa-2x text-gray-300"></i>
+                                <div class="h5 mb-0 fw-bold text-gray-800">
+                                    @stats.ChiffreAffairesTotal.ToString("C", new CultureInfo("fr-FR"))
                                 </div>
+                                <small class="text-muted">
+                                    Ce mois: @stats.ChiffreAffairesMoisCourant.ToString("C", new CultureInfo("fr-FR"))
+                                </small>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Carte Commandes -->
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-start-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs fw-bold text-success text-uppercase mb-1">
-                                        Nouvelles commandes
-                                    </div>
-                                    <div class="h5 mb-0 fw-bold text-gray-800">@newOrders</div>
-                                    <div class="mt-2 mb-0 text-muted text-xs">
-                                        <span class="text-success me-2">
-                                            <i class="fas fa-arrow-up"></i> 8%
-                                        </span>
-                                        <span>Depuis hier</span>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Carte Clients actifs -->
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-start-info shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs fw-bold text-info text-uppercase mb-1">
-                                        Clients actifs
-                                    </div>
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col-auto">
-                                            <div class="h5 mb-0 mr-3 fw-bold text-gray-800">@activeCustomers</div>
-                                        </div>
-                                        <div class="col">
-                                            <div class="progress progress-sm mr-2">
-                                                <div class="progress-bar bg-info" role="progressbar"
-                                                     style="width: @((activeCustomers / 1000.0 * 100).ToString("0"))%"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 mb-0 text-muted text-xs">
-                                        <span class="text-success me-2">
-                                            <i class="fas fa-arrow-up"></i> 5%
-                                        </span>
-                                        <span>Depuis la semaine dernière</span>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-users fa-2x text-gray-300"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Carte Taux de connexion -->
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-start-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">
-                                        Taux de connexion
-                                    </div>
-                                    <div class="h5 mb-0 fw-bold text-gray-800">@(loginRate.ToString("0.0"))%</div>
-                                    <div class="mt-2 mb-0 text-muted text-xs">
-                                        <span class="text-success me-2">
-                                            <i class="fas fa-arrow-up"></i> 3%
-                                        </span>
-                                        <span>Depuis le mois dernier</span>
-                                    </div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-chart-line fa-2x text-gray-300"></i>
-                                </div>
+                            <div class="col-auto">
+                                <i class="bi bi-currency-euro fa-2x text-gray-300"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Dashboard simple ajouté -->
-            <div class="row mt-4">
-                <div class="col-lg-6 mb-4">
-                    <div class="card shadow">
-                        <div class="card-header fw-bold text-primary">
-                            Ventes récentes (statique)
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-start-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                    Total commandes
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">@stats.NombreTotalCommandes</div>
+                                <small class="text-muted">Ce mois: @stats.CommandesMoisCourant</small>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-cart-check fa-2x text-gray-300"></i>
+                            </div>
                         </div>
-                        <div class="card-body">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-start-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                    Total clients
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">@stats.NombreTotalClients</div>
+                                <small class="text-muted">Nouveaux ce mois: @stats.NouveauxClientsMoisCourant</small>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-people fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-start-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                    Produits
+                                </div>
+                                <div class="h5 mb-0 fw-bold text-gray-800">@stats.NombreTotalProduits</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="bi bi-box-seam fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statuts des commandes -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <h6 class="text-warning">En cours</h6>
+                        <h3 class="fw-bold">@stats.CommandesEnCours</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <h6 class="text-success">Livrées</h6>
+                        <h3 class="fw-bold">@stats.CommandesLivrees</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <h6 class="text-danger">Annulées</h6>
+                        <h3 class="fw-bold">@stats.CommandesAnnulees</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Top produits -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header fw-bold text-primary">
+                        <i class="bi bi-trophy me-2"></i>Top 5 Produits
+                    </div>
+                    <div class="card-body">
+                        @if (stats.TopProduits.Any())
+                        {
                             <table class="table table-sm">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Produit</th>
-                                        <th>Client</th>
-                                        <th>Montant</th>
+                                        <th class="text-end">Quantité</th>
+                                        <th class="text-end">CA</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>Chanel N°5</td>
-                                        <td>Sarah</td>
-                                        <td>89,50 €</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Dior J'adore</td>
-                                        <td>Luc</td>
-                                        <td>95,00 €</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Gucci Bloom</td>
-                                        <td>Anna</td>
-                                        <td>78,00 €</td>
-                                    </tr>
+                                    @foreach (var produit in stats.TopProduits)
+                                    {
+                                        <tr>
+                                            <td>@produit.ProduitNom</td>
+                                            <td class="text-end">@produit.QuantiteVendue</td>
+                                            <td class="text-end">@produit.ChiffreAffaires.ToString("C", new CultureInfo("fr-FR"))</td>
+                                        </tr>
+                                    }
                                 </tbody>
                             </table>
-                        </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Aucune vente enregistrée</p>
+                        }
                     </div>
                 </div>
+            </div>
 
-              
-            </div>
-            <!-- Actions rapides -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card shadow">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 fw-bold text-primary">Actions rapides</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-3 col-6">
-                                    <a href="/products" class="btn btn-outline-primary w-100 h-100 py-3">
-                                        <i class="fas fa-shopping-bag fa-2x mb-2"></i><br>
-                                        <span>Boutique</span>
-                                    </a>
-                                </div>
-                                <AuthorizeView Roles="Admin">
-                                    <Authorized>
-                                        <div class="col-md-3 col-6">
-                                            <a href="/admin/utilisateurs" class="btn btn-outline-success w-100 h-100 py-3">
-                                                <i class="fas fa-users fa-2x mb-2"></i><br>
-                                                <span>Gérer utilisateurs</span>
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3 col-6">
-                                            <a href="/admin/orders" class="btn btn-outline-info w-100 h-100 py-3">
-                                                <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
-                                                <span>Commandes</span>
-                                            </a>
-                                        </div>
-                                    </Authorized>
-                                </AuthorizeView>
-                                <div class="col-md-3 col-6">
-                                    <a href="/profile" class="btn btn-outline-warning w-100 h-100 py-3">
-                                        <i class="fas fa-user-cog fa-2x mb-2"></i><br>
-                                        <span>Mon profil</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+            <!-- Top clients -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-header fw-bold text-success">
+                        <i class="bi bi-star me-2"></i>Top 5 Clients
+                    </div>
+                    <div class="card-body">
+                        @if (stats.TopClients.Any())
+                        {
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Client</th>
+                                        <th class="text-end">Commandes</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var client in stats.TopClients)
+                                    {
+                                        <tr>
+                                            <td>@client.ClientEmail</td>
+                                            <td class="text-end">@client.NombreCommandes</td>
+                                            <td class="text-end">@client.TotalDepense.ToString("C", new CultureInfo("fr-FR"))</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Aucun client</p>
+                        }
                     </div>
                 </div>
             </div>
-        </Authorized>
+        </div>
 
-        <NotAuthorized>
-            <!-- Version pour non connecté -->
-            <div class="row justify-content-center mt-5">
-                <div class="col-lg-6">
-                    <div class="card shadow-lg border-0">
-                        <div class="card-body text-center p-5">
-                            <i class="fas fa-lock fa-4x text-primary mb-4"></i>
-                            <h2 class="h3 mb-3">Accès restreint</h2>
-                            <p class="text-muted mb-4">
-                                Pour accéder au tableau de bord et aux fonctionnalités de l'application,
-                                veuillez vous connecter ou créer un compte.
-                            </p>
-                            <div class="d-grid gap-2 d-md-block">
-                                <a href="/login" class="btn btn-primary btn-lg px-4 me-2">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Connexion
-                                </a>
-                                <a href="/register" class="btn btn-outline-primary btn-lg px-4">
-                                    <i class="fas fa-user-plus me-2"></i>Inscription
-                                </a>
+        <!-- Commandes récentes -->
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-header fw-bold text-info">
+                        <i class="bi bi-clock-history me-2"></i>Commandes récentes
+                    </div>
+                    <div class="card-body">
+                        @if (stats.CommandesRecentes.Any())
+                        {
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light" style="position: sticky; top: 0;">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Date</th>
+                                            <th>Client</th>
+                                            <th>Articles</th>
+                                            <th>Statut</th>
+                                            <th class="text-end">Montant</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var cmd in stats.CommandesRecentes)
+                                        {
+                                            <tr>
+                                                <td>#@cmd.Id</td>
+                                                <td>@cmd.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
+                                                <td>@cmd.UtilisateurEmail</td>
+                                                <td>@string.Join(", ", cmd.LigneCommandes.Select(l => l.ProduitNom))</td>
+                                                <td>
+                                                    <span class="badge bg-@GetStatusBadgeClass(cmd.Statut)">
+                                                        @cmd.Statut
+                                                    </span>
+                                                </td>
+                                                <td class="text-end fw-bold">@cmd.Total.ToString("C", new CultureInfo("fr-FR"))</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Aucune commande récente</p>
+                        }
                     </div>
                 </div>
             </div>
-        </NotAuthorized>
-    </AuthorizeView>
+        </div>
+    }
 </div>
 
 <style>
     .border-start-primary {
         border-left: 0.25rem solid #4e73df !important;
     }
+
     .border-start-success {
         border-left: 0.25rem solid #1cc88a !important;
     }
+
     .border-start-info {
         border-left: 0.25rem solid #36b9cc !important;
     }
+
     .border-start-warning {
         border-left: 0.25rem solid #f6c23e !important;
-    }
-    .icon-circle {
-        height: 2.5rem;
-        width: 2.5rem;
-        border-radius: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
 </style>
 
 @code {
-    private List<SaleItem> sales = new()
-{
-    new() { Produit = "Chanel N°5", Client = "Sarah", Montant = 89.50m },
-    new() { Produit = "Dior J'adore", Client = "Luc", Montant = 95.00m },
-    new() { Produit = "Gucci Bloom", Client = "Anna", Montant = 78.00m }
-};
+    private AdminDashboardStatsDTO? stats;
+    private bool isLoading = true;
+    private bool isClient = false;
 
-    private class SaleItem
+    protected override async Task OnInitializedAsync()
     {
-        public string Produit { get; set; }
-        public string Client { get; set; }
-        public decimal Montant { get; set; }
+        var token = await localStorage.GetItemAsync<string>("authToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            isClient = true;
+            isLoading = false;
+            return;
+        }
+
+        var claims = JwtParser.ParseClaimsFromJwt(token);
+        isClient = !claims.Any(c => c.Type.Contains("role") && c.Value == "Admin");
+
+        if (!isClient)
+        {
+            stats = await dashboardService.GetDashboardStatsAsync();
+        }
+
+        isLoading = false;
     }
 
-    private decimal monthlyRevenue = 15432.50m;
-    private int newOrders = 24;
-    private int activeCustomers = 842;
-    private double loginRate = 87.5;
-
-    private RecentActivity recentActivity = new()
+    private string GetStatusBadgeClass(string statut) => statut switch
     {
-        Connexions = 3,
-        ProduitsConsultés = 12,
-        Commandes = 1
+        "En cours" => "warning",
+        "Livrée" => "success",
+        "Annulée" => "danger",
+        _ => "secondary"
     };
 
-    private class RecentActivity
+    public static class JwtParser
     {
-        public int Connexions { get; set; }
-        public int ProduitsConsultés { get; set; }
-        public int Commandes { get; set; }
+        public static IEnumerable<System.Security.Claims.Claim> ParseClaimsFromJwt(string jwt)
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+            return keyValuePairs.Select(kvp => new System.Security.Claims.Claim(kvp.Key, kvp.Value.ToString()));
+        }
+
+        private static byte[] ParseBase64WithoutPadding(string base64)
+        {
+            switch (base64.Length % 4)
+            {
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
+            }
+            return Convert.FromBase64String(base64);
+        }
     }
 }

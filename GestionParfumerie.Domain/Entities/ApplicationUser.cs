@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using System;
-using System.Collections.Generic;
+
 
 namespace GestionParfumerie.Domain.Entities
 {
@@ -12,6 +11,7 @@ namespace GestionParfumerie.Domain.Entities
         public DateTime? DateNaissance { get; set; }
         public string? Adresse { get; set; }
 
+        public DateTime? CreatedAt { get; set; }
         // Relations
         public ICollection<Commande>? Commandes { get; set; }
     }

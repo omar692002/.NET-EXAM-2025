@@ -37,6 +37,9 @@ namespace GestionParfumerie.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("DateNaissance")
                         .HasColumnType("datetime2");
 

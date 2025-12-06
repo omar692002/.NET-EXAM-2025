@@ -16,5 +16,6 @@ namespace GestionParfumerie.Application.Interfaces
         // Méthodes pour gérer les familles olfactives
         Task AddFamillesAsync(int produitId, IEnumerable<int> familleIds);
         Task RemoveAllFamillesAsync(int produitId);
+        Task<int> GetTotalCountAsync();
     }
 }
