@@ -1,13 +1,14 @@
 ﻿using GestionParfumerie.Domain.Entities;
 using GestionParfumerie.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using GestionParfumerie.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestionParfumerie.Infrastructure.Repositories
 {
     public class FamilleOlfactivesRepository : IFamilleOlfactivesRepository
     {
         private readonly ApplicationDbContext _context;
+
         public FamilleOlfactivesRepository(ApplicationDbContext context)
         {
             _context = context;
@@ -15,12 +16,18 @@ namespace GestionParfumerie.Infrastructure.Repositories
 
         public async Task<IEnumerable<FamilleOlfactive>> GetAllAsync()
         {
-            return await _context.FamillesOlfactives.ToListAsync();
+            return await _context.FamillesOlfactives
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                .ToListAsync();
         }
 
-        public async Task<FamilleOlfactive> GetByIdAsync(int id)
+        public async Task<FamilleOlfactive?> GetByIdAsync(int id)
         {
-            return await _context.FamillesOlfactives.FirstOrDefaultAsync(p => p.Id == id);
+            return await _context.FamillesOlfactives
+                .Include(f => f.ProduitFamilles)
+                    .ThenInclude(pf => pf.Produit)
+                .FirstOrDefaultAsync(f => f.Id == id);
         }
 
         public async Task AddAsync(FamilleOlfactive famille)

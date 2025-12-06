@@ -14,7 +14,9 @@ namespace GestionParfumerie.Infrastructure.Repositories
 
         public async Task<IEnumerable<Categorie>> GetAllAsync()
         {
-            return await _context.Categories.ToListAsync();
+            return await _context.Categories
+                                    .Include(c => c.Produits)
+                                    .ToListAsync();
         }
 
         public async Task<Categorie> GetByIdAsync(int id)

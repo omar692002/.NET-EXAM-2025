@@ -7,5 +7,10 @@
 
         // Calculé
         public int NombreProduits { get; set; }
+        public string? Description { get; set; } // ← Ajouté
+
+        public List<ProduitDTO> Produits { get; set; } = new();
+
     }
+
 }

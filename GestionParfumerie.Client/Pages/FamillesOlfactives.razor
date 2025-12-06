@@ -4,9 +4,14 @@
 
 <h3>Gestion des familles olfactives</h3>
 
-<button class="btn btn-primary mb-3" @onclick="ShowCreateModal">
-    <i class="bi bi-plus-circle"></i> Ajouter une famille
-</button>
+<div class="d-flex mb-3">
+    <div class="flex-grow-1"></div>
+    <div class="text-end">
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle"></i> Ajouter une famille
+        </button>
+    </div>
+</div>
 
 @if (familles == null)
 {
@@ -14,10 +19,10 @@
 }
 else
 {
-    <!-- Tableau paginé -->
     <table class="table table-striped">
         <thead>
             <tr>
+                <th>ID</th>
                 <th>Nom</th>
                 <th>Nb Produits</th>
                 <th>Actions</th>
@@ -27,14 +32,18 @@ else
             @foreach (var fam in PagedFamilles)
             {
                 <tr>
+                    <td>@fam.Id</td>
                     <td>@fam.Nom</td>
                     <td>@fam.NombreProduits</td>
                     <td>
-                        <button class="btn btn-sm btn-warning me-1" @onclick="() => ShowEditModal(fam)">
+                        <button class="btn btn-sm btn-warning me-1" title="Modifier" @onclick="() => ShowEditModal(fam)">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(fam.Id)">
+                        <button class="btn btn-sm btn-danger me-1" title="Supprimer" @onclick="() => Delete(fam.Id)">
                             <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" title="Voir produits" @onclick="() => ShowProducts(fam)">
+                            <i class="bi bi-box-seam"></i>
                         </button>
                     </td>
                 </tr>
@@ -83,6 +92,73 @@ else
     </div>
 </div>
 
+<!-- Modal Produits par famille -->
+@if (showProductsModal && selectedFamille != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Produits de @selectedFamille.Nom</h5>
+                    <button type="button" class="btn-close" @onclick="CloseProductsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedFamille.Produits != null && selectedFamille.Produits.Any())
+                    {
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Description</th>
+                                    <th>Prix</th>
+                                    <th>Brand</th>
+                                    <th>Familles olfactives</th>
+                                    <th>Photo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in selectedFamille.Produits)
+                                {
+                                    <tr>
+                                        <td>@p.Id</td>
+                                        <td>@p.Nom</td>
+                                        <td>@p.Description</td>
+                                        <td>@p.Prix</td>
+                                        <td>@p.BrandNom</td>
+                                        <td>
+                                            @foreach (var fo in p.FamillesOlfactives)
+                                            {
+                                                <span>@fo</span>@if(fo != p.FamillesOlfactives.Last()){
+                                                <span>, </span>
+                                            }
+                                        }
+                                    </td>
+
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(p.PhotoPath))
+                                            {
+                                                <img src="@p.PhotoPath" alt="@p.Nom" style="height:50px;" />
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p>Aucun produit disponible pour cette famille.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseProductsModal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<FamilleOlfactiveDTO>? familles;
 
@@ -92,11 +168,15 @@ else
     private int totalPages => familles != null ? (int)Math.Ceiling(familles.Count / (double)pageSize) : 1;
     private IEnumerable<FamilleOlfactiveDTO> PagedFamilles => familles?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<FamilleOlfactiveDTO>();
 
-    // Modal
+    // Modal CRUD
     private bool showModal = false;
     private string modalTitle = "";
     private FamilleOlfactiveDTO modalFamille = new FamilleOlfactiveDTO();
     private FamilleOlfactiveDTO? editingFamille = null;
+
+    // Modal produits
+    private FamilleOlfactiveDTO? selectedFamille;
+    private bool showProductsModal = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,34 +197,29 @@ else
         {
             Id = fam.Id,
             Nom = fam.Nom,
-            NombreProduits = fam.NombreProduits
+            NombreProduits = fam.NombreProduits,
+            Produits = fam.Produits
         };
         editingFamille = fam;
         modalTitle = "Modifier la famille";
         showModal = true;
     }
 
-    private void CloseModal()
-    {
-        showModal = false;
-    }
+    private void CloseModal() => showModal = false;
 
     private async Task SaveFamille()
     {
         if (editingFamille != null)
         {
-            // Edition
-            await FamillesService.UpdateAsync(modalFamille.Id, modalFamille);
+            await FamillesService.UpdateAsync(editingFamille.Id, modalFamille);
             editingFamille.Nom = modalFamille.Nom;
         }
         else
         {
-            // Création
-            modalFamille.NombreProduits = 0; // champ calculé initial
+            modalFamille.NombreProduits = 0;
             var created = await FamillesService.CreateAsync(modalFamille);
             familles.Add(created);
         }
-
         showModal = false;
     }
 
@@ -154,18 +229,20 @@ else
         familles.RemoveAll(f => f.Id == id);
     }
 
-    private void PrevPage()
+    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
+    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+    private void GoToPage(int page) => currentPage = page;
+
+    // Modal produits
+    private void ShowProducts(FamilleOlfactiveDTO fam)
     {
-        if (currentPage > 1) currentPage--;
+        selectedFamille = fam;
+        showProductsModal = true;
     }
 
-    private void NextPage()
+    private void CloseProductsModal()
     {
-        if (currentPage < totalPages) currentPage++;
-    }
-
-    private void GoToPage(int page)
-    {
-        currentPage = page;
+        selectedFamille = null;
+        showProductsModal = false;
     }
 }

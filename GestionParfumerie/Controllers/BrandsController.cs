@@ -9,12 +9,12 @@ namespace GestionParfumerie.Controllers
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
-    public class FournisseursController : ControllerBase
+    public class BrandsController : ControllerBase
     {
-        private readonly IFournisseursRepository _repo;
+        private readonly IBrandsRepository _repo;
         private readonly IMapper _mapper;
 
-        public FournisseursController(IFournisseursRepository repo, IMapper mapper)
+        public BrandsController(IBrandsRepository repo, IMapper mapper)
         {
             _repo = repo;
             _mapper = mapper;
@@ -23,8 +23,8 @@ namespace GestionParfumerie.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var fournisseurs = await _repo.GetAllAsync();
-            var dto = _mapper.Map<IEnumerable<FournisseurDTO>>(fournisseurs);
+            var brands = await _repo.GetAllAsync();
+            var dto = _mapper.Map<IEnumerable<BrandsDTO>>(brands);
             return Ok(dto);
         }
 
@@ -33,28 +33,28 @@ namespace GestionParfumerie.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var fournisseur = await _repo.GetByIdAsync(id);
-            if (fournisseur == null)
+            var brand = await _repo.GetByIdAsync(id);
+            if (brand == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<FournisseurDTO>(fournisseur));
+            return Ok(_mapper.Map<BrandsDTO>(brand));
         }
 
         // CREATE
         [HttpPost]
-        public async Task<IActionResult> Create(FournisseurDTO dto)
+        public async Task<IActionResult> Create(BrandsDTO dto)
         {
-            var fournisseur = _mapper.Map<Fournisseur>(dto);
-            await _repo.AddAsync(fournisseur);
+            var brand = _mapper.Map<Brand>(dto);
+            await _repo.AddAsync(brand);
 
-            return CreatedAtAction(nameof(GetById), new { id = fournisseur.Id },
-                _mapper.Map<FournisseurDTO>(fournisseur));
+            return CreatedAtAction(nameof(GetById), new { id = brand.Id },
+                _mapper.Map<BrandsDTO>(brand));
         }
 
         // UPDATE
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Update(int id, FournisseurDTO dto)
+        public async Task<IActionResult> Update(int id, BrandsDTO dto)
         {
             var existing = await _repo.GetByIdAsync(id);
             if (existing == null)
@@ -71,15 +71,15 @@ namespace GestionParfumerie.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            var fournisseur = await _repo.GetByIdAsync(id);
-            if (fournisseur == null)
+            var brand = await _repo.GetByIdAsync(id);
+            if (brand == null)
                 return NotFound();
 
-            if (fournisseur.Produits.Any())
-                return BadRequest("Impossible de supprimer un fournisseur ayant des produits.");
+            if (brand.Produits.Any())
+                return BadRequest("Impossible de supprimer un brand ayant des produits.");
 
             await _repo.DeleteAsync(id);
-            return Ok("Fournisseur supprimé avec succès");
+            return Ok("Brand supprimé avec succès");
         }
     }
 

@@ -17,20 +17,21 @@ namespace GestionParfumerie.Infrastructure.Repositories
         {
             return await _context.Produits
                 .Include(p => p.Categorie)
-                .Include(p => p.Fournisseur)
-                .Include(p => p.FamilleOlfactive)
+                .Include(p => p.Brand)
+                .Include(p => p.ProduitFamilles)
+                    .ThenInclude(pf => pf.FamilleOlfactive)
                 .ToListAsync();
         }
 
-        public async Task<Produit> GetByIdAsync(int id)
+        public async Task<Produit?> GetByIdAsync(int id)
         {
             return await _context.Produits
                 .Include(p => p.Categorie)
-                .Include(p => p.Fournisseur)
-                .Include(p => p.FamilleOlfactive)
+                .Include(p => p.Brand)
+                .Include(p => p.ProduitFamilles) 
+                    .ThenInclude(pf => pf.FamilleOlfactive)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
-
         public async Task AddAsync(Produit produit)
         {
             _context.Produits.Add(produit);

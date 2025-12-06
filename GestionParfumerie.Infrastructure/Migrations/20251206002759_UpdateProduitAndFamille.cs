@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace GestionParfumerie.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class UpdateProduitAndFamille : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -90,7 +90,6 @@ namespace GestionParfumerie.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Nom = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Telephone = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Adresse = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -211,7 +210,7 @@ namespace GestionParfumerie.Infrastructure.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DateCommande = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Statut = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Statut = table.Column<int>(type: "int", maxLength: 50, nullable: false),
                     Total = table.Column<decimal>(type: "decimal(18,4)", precision: 18, scale: 4, nullable: false),
                     UtilisateurId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
@@ -232,14 +231,14 @@ namespace GestionParfumerie.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Nom = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Nom = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Prix = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Prix = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     QuantiteEnStock = table.Column<int>(type: "int", nullable: false),
                     DateAjout = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CategorieId = table.Column<int>(type: "int", nullable: false),
-                    FournisseurId = table.Column<int>(type: "int", nullable: false),
-                    FamilleOlfactiveId = table.Column<int>(type: "int", nullable: false)
+                    BrandId = table.Column<int>(type: "int", nullable: false),
+                    PhotoPath = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -251,14 +250,8 @@ namespace GestionParfumerie.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Produits_FamillesOlfactives_FamilleOlfactiveId",
-                        column: x => x.FamilleOlfactiveId,
-                        principalTable: "FamillesOlfactives",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Produits_Fournisseurs_FournisseurId",
-                        column: x => x.FournisseurId,
+                        name: "FK_Produits_Fournisseurs_BrandId",
+                        column: x => x.BrandId,
                         principalTable: "Fournisseurs",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -290,6 +283,30 @@ namespace GestionParfumerie.Infrastructure.Migrations
                         principalTable: "Produits",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProduitFamilleOlfactives",
+                columns: table => new
+                {
+                    ProduitId = table.Column<int>(type: "int", nullable: false),
+                    FamilleOlfactiveId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProduitFamilleOlfactives", x => new { x.ProduitId, x.FamilleOlfactiveId });
+                    table.ForeignKey(
+                        name: "FK_ProduitFamilleOlfactives_FamillesOlfactives_FamilleOlfactiveId",
+                        column: x => x.FamilleOlfactiveId,
+                        principalTable: "FamillesOlfactives",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProduitFamilleOlfactives_Produits_ProduitId",
+                        column: x => x.ProduitId,
+                        principalTable: "Produits",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -347,19 +364,19 @@ namespace GestionParfumerie.Infrastructure.Migrations
                 column: "ProduitId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Produits_CategorieId",
-                table: "Produits",
-                column: "CategorieId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Produits_FamilleOlfactiveId",
-                table: "Produits",
+                name: "IX_ProduitFamilleOlfactives_FamilleOlfactiveId",
+                table: "ProduitFamilleOlfactives",
                 column: "FamilleOlfactiveId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Produits_FournisseurId",
+                name: "IX_Produits_BrandId",
                 table: "Produits",
-                column: "FournisseurId");
+                column: "BrandId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Produits_CategorieId",
+                table: "Produits",
+                column: "CategorieId");
         }
 
         /// <inheritdoc />
@@ -384,10 +401,16 @@ namespace GestionParfumerie.Infrastructure.Migrations
                 name: "LigneCommandes");
 
             migrationBuilder.DropTable(
+                name: "ProduitFamilleOlfactives");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "Commandes");
+
+            migrationBuilder.DropTable(
+                name: "FamillesOlfactives");
 
             migrationBuilder.DropTable(
                 name: "Produits");
@@ -397,9 +420,6 @@ namespace GestionParfumerie.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Categories");
-
-            migrationBuilder.DropTable(
-                name: "FamillesOlfactives");
 
             migrationBuilder.DropTable(
                 name: "Fournisseurs");

@@ -15,6 +15,6 @@ namespace GestionParfumerie.Domain.Entities
         [MaxLength(300)]
         public string? Description { get; set; }
 
-        public required ICollection<Produit> Produits { get; set; }
+        public ICollection<ProduitFamilleOlfactive> ProduitFamilles { get; set; } = new List<ProduitFamilleOlfactive>();
     }
 }

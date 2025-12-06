@@ -51,9 +51,9 @@ namespace GestionParfumerie.Client.Services
         }
 
        
-        public async Task<List<FournisseurDTO>> GetAllFournisseursAsync()
+        public async Task<List<BrandsDTO>> GetAllFournisseursAsync()
         {
-            return await _http.GetFromJsonAsync<List<FournisseurDTO>>("api/fournisseurs") ?? new List<FournisseurDTO>();
+            return await _http.GetFromJsonAsync<List<BrandsDTO>>("api/brands") ?? new List<BrandsDTO>();
         }
         public async Task<List<FamilleOlfactiveDTO>> GetAllFamillesAsync()
         {

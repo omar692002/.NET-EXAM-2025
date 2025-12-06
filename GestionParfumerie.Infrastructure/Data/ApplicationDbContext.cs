@@ -14,10 +14,11 @@ namespace GestionParfumerie.Infrastructure.Data
         // --- Tables de ton domaine ---
         public DbSet<Produit> Produits { get; set; }
         public DbSet<Categorie> Categories { get; set; }
-        public DbSet<Fournisseur> Fournisseurs { get; set; }
+        public DbSet<Brand> Fournisseurs { get; set; }
         public DbSet<FamilleOlfactive> FamillesOlfactives { get; set; }
         public DbSet<Commande> Commandes { get; set; }
         public DbSet<LigneCommande> LigneCommandes { get; set; }
+        public DbSet<ProduitFamilleOlfactive> ProduitFamilleOlfactives { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -30,19 +31,27 @@ namespace GestionParfumerie.Infrastructure.Data
                 .HasForeignKey(p => p.CategorieId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Relations Produit -> Fournisseur
+            // Relations Produit -> Brand
             builder.Entity<Produit>()
-                .HasOne(p => p.Fournisseur)
+                .HasOne(p => p.Brand)
                 .WithMany(f => f.Produits)
-                .HasForeignKey(p => p.FournisseurId)
+                .HasForeignKey(p => p.BrandId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Relations Produit -> FamilleOlfactive
-            builder.Entity<Produit>()
-                .HasOne(p => p.FamilleOlfactive)
-                .WithMany(f => f.Produits)
-                .HasForeignKey(p => p.FamilleOlfactiveId)
-                .OnDelete(DeleteBehavior.Restrict);
+           
+            builder.Entity<ProduitFamilleOlfactive>()
+                .HasKey(pf => new { pf.ProduitId, pf.FamilleOlfactiveId });
+
+            builder.Entity<ProduitFamilleOlfactive>()
+                .HasOne(pf => pf.Produit)
+                .WithMany(p => p.ProduitFamilles)
+                .HasForeignKey(pf => pf.ProduitId);
+
+            builder.Entity<ProduitFamilleOlfactive>()
+                .HasOne(pf => pf.FamilleOlfactive)
+                .WithMany(f => f.ProduitFamilles)
+                .HasForeignKey(pf => pf.FamilleOlfactiveId);
+
 
             // Relations Commande -> ApplicationUser (au lieu de Client)
             builder.Entity<Commande>()

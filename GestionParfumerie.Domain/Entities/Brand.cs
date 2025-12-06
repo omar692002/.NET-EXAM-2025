@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GestionParfumerie.Domain.Entities
 {
-    public class Fournisseur
+    public class Brand
     {
         [Key]
         public int Id { get; set; }
@@ -15,8 +15,6 @@ namespace GestionParfumerie.Domain.Entities
         [EmailAddress]
         public required string Email { get; set; }
 
-        [Phone]
-        public required string Telephone { get; set; }
 
         public required string Adresse { get; set; }
 

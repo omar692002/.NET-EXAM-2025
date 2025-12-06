@@ -27,7 +27,7 @@ namespace GestionParfumerie.Client
             builder.Services.AddScoped<CategoriesService>();
             builder.Services.AddScoped<FamillesOlfactivesService>();
             builder.Services.AddScoped<ProduitsService>();
-            builder.Services.AddScoped<FournisseursService>();
+            builder.Services.AddScoped<BrandsService>();
             builder.Services.AddScoped<CommandesService>();
 
 

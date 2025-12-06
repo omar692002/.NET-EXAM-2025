@@ -2,12 +2,18 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject CategoriesService CategoriesService
 
-
 <h3>Gestion des catégories</h3>
 
-<button class="btn btn-primary mb-3" @onclick="ShowCreateModal">
-    <i class="bi bi-plus-circle"></i> Ajouter une catégorie
-</button>
+<div class="mb-3 row">
+    <div class="col-md-4">
+        <input class="form-control" placeholder="Filtrer par nom ou ID" @bind="searchText" />
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle"></i> Ajouter
+        </button>
+    </div>
+</div>
 
 @if (categories == null)
 {
@@ -15,10 +21,10 @@
 }
 else
 {
-    <!-- Tableau paginé -->
     <table class="table table-striped">
         <thead>
             <tr>
+                <th>ID</th>
                 <th>Nom</th>
                 <th>Description</th>
                 <th>Nb Produits</th>
@@ -29,15 +35,19 @@ else
             @foreach (var cat in PagedCategories)
             {
                 <tr>
+                    <td>@cat.Id</td>
                     <td>@cat.Nom</td>
                     <td>@cat.Description</td>
                     <td>@cat.NombreProduits</td>
                     <td>
-                        <button class="btn btn-sm btn-warning me-1" @onclick="() => ShowEditModal(cat)">
+                        <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(cat)">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(cat.Id)">
+                        <button class="btn btn-danger btn-sm me-1" title="Supprimer" @onclick="() => Delete(cat.Id)">
                             <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-info btn-sm" title="Voir produits" @onclick="() => ShowProducts(cat)">
+                            <i class="bi bi-box-seam"></i>
                         </button>
                     </td>
                 </tr>
@@ -90,24 +100,93 @@ else
     </div>
 </div>
 
+<!-- Modal Produits par catégorie -->
+@if (showProductsModal && selectedCategory != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Produits de @selectedCategory.Nom</h5>
+                    <button type="button" class="btn-close" @onclick="CloseProductsModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (selectedCategory.Produits.Any())
+                    {
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Description</th>
+                                    <th>Prix</th>
+                                    <th>Brand</th>
+                                    <th>Familles olfactives</th>
+                                    <th>Photo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in selectedCategory.Produits)
+                                {
+                                    <tr>
+                                        <td>@p.Id</td>
+                                        <td>@p.Nom</td>
+                                        <td>@p.Description</td>
+                                        <td>@p.Prix</td>
+                                        <td>@p.BrandNom</td>
+                                        <td>@string.Join(", ", p.FamillesOlfactives.Select(f => f))</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(p.PhotoPath))
+                                            {
+                                                <img src="@p.PhotoPath" alt="@p.Nom" style="height:50px;" />
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p>Aucun produit disponible pour cette catégorie.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseProductsModal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<CategorieDTO>? categories;
+    private string searchText = "";
 
     // Pagination
     private int currentPage = 1;
     private int pageSize = 5;
-    private int totalPages => categories != null ? (int)Math.Ceiling(categories.Count / (double)pageSize) : 1;
-    private IEnumerable<CategorieDTO> PagedCategories => categories?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<CategorieDTO>();
+    private int totalPages => FilteredCategories.Any() ? (int)Math.Ceiling(FilteredCategories.Count() / (double)pageSize) : 1;
+    private IEnumerable<CategorieDTO> FilteredCategories =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? categories ?? Enumerable.Empty<CategorieDTO>()
+            : categories.Where(c => c.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                                  || c.Id.ToString() == searchText);
+    private IEnumerable<CategorieDTO> PagedCategories => FilteredCategories.Skip((currentPage - 1) * pageSize).Take(pageSize);
 
-    // Modal
+    // Modal CRUD
     private bool showModal = false;
     private string modalTitle = "";
     private CategorieDTO modalCategory = new CategorieDTO();
     private CategorieDTO? editingCategory = null;
 
+    // Modal produits
+    private CategorieDTO? selectedCategory;
+    private bool showProductsModal = false;
+
     protected override async Task OnInitializedAsync()
     {
-        categories = await CategoriesService.GetAllAsync();
+        categories = (await CategoriesService.GetAllAsync()).ToList();
     }
 
     private void ShowCreateModal()
@@ -125,35 +204,30 @@ else
             Id = cat.Id,
             Nom = cat.Nom,
             Description = cat.Description,
-            NombreProduits = cat.NombreProduits
+            NombreProduits = cat.NombreProduits,
+            Produits = cat.Produits
         };
         editingCategory = cat;
         modalTitle = "Modifier la catégorie";
         showModal = true;
     }
 
-    private void CloseModal()
-    {
-        showModal = false;
-    }
+    private void CloseModal() => showModal = false;
 
     private async Task SaveCategory()
     {
         if (editingCategory != null)
         {
-            // Edition
-            await CategoriesService.UpdateAsync(modalCategory.Id, modalCategory);
+            await CategoriesService.UpdateAsync(editingCategory.Id, modalCategory);
             editingCategory.Nom = modalCategory.Nom;
             editingCategory.Description = modalCategory.Description;
         }
         else
         {
-            // Création
-            modalCategory.NombreProduits = 0; // champ calculé initial
+            modalCategory.NombreProduits = 0;
             var created = await CategoriesService.CreateAsync(modalCategory);
             categories.Add(created);
         }
-
         showModal = false;
     }
 
@@ -163,18 +237,20 @@ else
         categories.RemoveAll(c => c.Id == id);
     }
 
-    private void PrevPage()
+    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
+    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
+    private void GoToPage(int page) => currentPage = page;
+
+    // Produits modal
+    private void ShowProducts(CategorieDTO cat)
     {
-        if (currentPage > 1) currentPage--;
+        selectedCategory = cat;
+        showProductsModal = true;
     }
 
-    private void NextPage()
+    private void CloseProductsModal()
     {
-        if (currentPage < totalPages) currentPage++;
-    }
-
-    private void GoToPage(int page)
-    {
-        currentPage = page;
+        selectedCategory = null;
+        showProductsModal = false;
     }
 }

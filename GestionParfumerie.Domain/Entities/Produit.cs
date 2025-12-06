@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestionParfumerie.Domain.Entities
@@ -10,30 +9,35 @@ namespace GestionParfumerie.Domain.Entities
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(100)]
+        [MaxLength(20)]
         public string Nom { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        [Column(TypeName = "decimal(10,2)")]
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Prix { get; set; }
 
         public int QuantiteEnStock { get; set; }
 
         public DateTime DateAjout { get; set; } = DateTime.Now;
 
-        // Foreign Keys
+        // --- Relations ---
         public int CategorieId { get; set; }
         public Categorie Categorie { get; set; }
 
-        public int FournisseurId { get; set; }
-        public Fournisseur Fournisseur { get; set; }
+        public int BrandId { get; set; }
+        public Brand Brand { get; set; }
 
-        public int FamilleOlfactiveId { get; set; }
-        public FamilleOlfactive FamilleOlfactive { get; set; }
+        public string? PhotoPath { get; set; }
 
-        // Navigation
+        // Many-to-Many avec Famille
+        public ICollection<ProduitFamilleOlfactive> ProduitFamilles { get; set; }
+            = new List<ProduitFamilleOlfactive>();
+
+        // One-to-Many avec ligne commande
         public ICollection<LigneCommande> LigneCommandes { get; set; }
+            = new List<LigneCommande>(); // ✔ CORRECTION
     }
 }

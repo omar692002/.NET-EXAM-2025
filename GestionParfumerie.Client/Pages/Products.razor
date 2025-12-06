@@ -2,7 +2,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject ProduitsService ProduitsService
 @inject CategoriesService CategoriesService
-@inject FournisseursService FournisseursService
+@inject BrandsService BrandsService
 @inject FamillesOlfactivesService FamillesService
 
 <h3>Gestion des produits</h3>
@@ -32,8 +32,8 @@ else
                 <th>Description</th>
                 <th>Prix</th>
                 <th>Catégorie</th>
-                <th>Fournisseur</th>
-                <th>Famille olfactive</th>
+                <th>Brand</th>
+                <th>Familles olfactives</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -46,38 +46,45 @@ else
                     <td>@p.Description</td>
                     <td>@p.Prix €</td>
                     <td>@p.CategorieNom</td>
-                    <td>@p.FournisseurNom</td>
-                    <td>@p.FamilleOlfactiveNom</td>
+                    <td>@p.BrandNom</td>
                     <td>
-                        <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                        @foreach (var fam in p.FamillesOlfactives)
+                        {
+                            <span>@fam</span>@if(fam != p.FamillesOlfactives.Last()){
+                            <span>, </span>
+                        }
+                    }
+                </td>
+                <td>
+                    <button class="btn btn-warning btn-sm me-1" title="Modifier" @onclick="() => ShowEditModal(p)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" title="Supprimer" @onclick="() => Delete(p.Id)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
 
-    <!-- Pagination -->
-    <nav>
-        <ul class="pagination">
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+            <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
+        </li>
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <li class="page-item @(currentPage == i ? "active" : "")">
+                <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
             </li>
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                <li class="page-item @(currentPage == i ? "active" : "")">
-                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
-                </li>
-            }
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
-            </li>
-        </ul>
-    </nav>
+        }
+        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+            <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
+        </li>
+    </ul>
+</nav>
 }
 
 <!-- Modal Création / Edition -->
@@ -105,27 +112,26 @@ else
                     <label class="form-label">Catégorie</label>
                     <select class="form-select" @bind="modalProduit.CategorieId">
                         <option value="">-- Choisir --</option>
-                        @foreach (var c in categories)
+                        @foreach (var c in categories ?? Enumerable.Empty<CategorieDTO>())
                         {
                             <option value="@c.Id">@c.Nom</option>
                         }
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Fournisseur</label>
-                    <select class="form-select" @bind="modalProduit.FournisseurId">
+                    <label class="form-label">Brand</label>
+                    <select class="form-select" @bind="modalProduit.BrandId">
                         <option value="">-- Choisir --</option>
-                        @foreach (var f in fournisseurs)
+                        @foreach (var f in fournisseurs ?? Enumerable.Empty<BrandsDTO>())
                         {
                             <option value="@f.Id">@f.Nom</option>
                         }
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Famille olfactive</label>
-                    <select class="form-select" @bind="modalProduit.FamilleOlfactiveId">
-                        <option value="">-- Choisir --</option>
-                        @foreach (var fo in familles)
+                    <label class="form-label">Familles olfactives</label>
+                    <select class="form-select" multiple @bind="modalProduit.FamillesOlfactivesIds">
+                        @foreach (var fo in familles ?? Enumerable.Empty<FamilleOlfactiveDTO>())
                         {
                             <option value="@fo.Id">@fo.Nom</option>
                         }
@@ -143,7 +149,7 @@ else
 @code {
     private List<ProduitDTO>? produits;
     private List<CategorieDTO>? categories;
-    private List<FournisseurDTO>? fournisseurs;
+    private List<BrandsDTO>? fournisseurs;
     private List<FamilleOlfactiveDTO>? familles;
     private string searchText = "";
 
@@ -154,7 +160,8 @@ else
     private IEnumerable<ProduitDTO> FilteredProduits =>
         string.IsNullOrWhiteSpace(searchText)
             ? produits ?? Enumerable.Empty<ProduitDTO>()
-            : produits.Where(p => p.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == searchText);
+            : (produits ?? Enumerable.Empty<ProduitDTO>())
+                .Where(p => p.Nom.Contains(searchText, StringComparison.OrdinalIgnoreCase) || p.Id.ToString() == searchText);
 
     private IEnumerable<ProduitDTO> PagedProduits => FilteredProduits.Skip((currentPage - 1) * pageSize).Take(pageSize);
 
@@ -168,7 +175,7 @@ else
     {
         produits = (await ProduitsService.GetAllAsync()).ToList();
         categories = (await CategoriesService.GetAllAsync()).ToList();
-        fournisseurs = (await FournisseursService.GetAllAsync()).ToList();
+        fournisseurs = (await BrandsService.GetAllAsync()).ToList();
         familles = (await FamillesService.GetAllAsync()).ToList();
     }
 
@@ -187,9 +194,11 @@ else
             Nom = p.Nom,
             Description = p.Description,
             Prix = p.Prix,
-            CategorieId = categories.FirstOrDefault(c => c.Nom == p.CategorieNom)?.Id ?? 0,
-            FournisseurId = fournisseurs.FirstOrDefault(f => f.Nom == p.FournisseurNom)?.Id ?? 0,
-            FamilleOlfactiveId = familles.FirstOrDefault(fa => fa.Nom == p.FamilleOlfactiveNom)?.Id ?? 0
+            CategorieId = categories?.FirstOrDefault(c => c.Nom == p.CategorieNom)?.Id ?? 0,
+            BrandId = fournisseurs?.FirstOrDefault(f => f.Nom == p.BrandNom)?.Id ?? 0,
+            FamillesOlfactivesIds = familles?
+                .Where(fa => p.FamillesOlfactives.Contains(fa.Nom))
+                .Select(fa => fa.Id).ToList() ?? new List<int>()
         };
         editingProduit = p;
         modalTitle = "Modifier le produit";
@@ -207,9 +216,11 @@ else
             editingProduit.Nom = modalProduit.Nom;
             editingProduit.Description = modalProduit.Description;
             editingProduit.Prix = modalProduit.Prix;
-            editingProduit.CategorieNom = categories.FirstOrDefault(c => c.Id == modalProduit.CategorieId)?.Nom ?? "";
-            editingProduit.FournisseurNom = fournisseurs.FirstOrDefault(f => f.Id == modalProduit.FournisseurId)?.Nom ?? "";
-            editingProduit.FamilleOlfactiveNom = familles.FirstOrDefault(fa => fa.Id == modalProduit.FamilleOlfactiveId)?.Nom ?? "";
+            editingProduit.CategorieNom = categories?.FirstOrDefault(c => c.Id == modalProduit.CategorieId)?.Nom ?? "";
+            editingProduit.BrandNom = fournisseurs?.FirstOrDefault(f => f.Id == modalProduit.BrandId)?.Nom ?? "";
+            editingProduit.FamillesOlfactives = familles?
+                .Where(fa => modalProduit.FamillesOlfactivesIds.Contains(fa.Id))
+                .Select(fa => fa.Nom).ToList() ?? new List<string>();
         }
         else
         {

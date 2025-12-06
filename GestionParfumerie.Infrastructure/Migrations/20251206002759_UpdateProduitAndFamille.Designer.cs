@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionParfumerie.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251106212814_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251206002759_UpdateProduitAndFamille")]
+    partial class UpdateProduitAndFamille
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -102,6 +102,32 @@ namespace GestionParfumerie.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("GestionParfumerie.Domain.Entities.Brand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Adresse")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Fournisseurs");
+                });
+
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.Categorie", b =>
                 {
                     b.Property<int>("Id")
@@ -135,10 +161,9 @@ namespace GestionParfumerie.Infrastructure.Migrations
                     b.Property<DateTime>("DateCommande")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Statut")
-                        .IsRequired()
+                    b.Property<int>("Statut")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Total")
                         .HasPrecision(18, 4)
@@ -175,36 +200,6 @@ namespace GestionParfumerie.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("FamillesOlfactives");
-                });
-
-            modelBuilder.Entity("GestionParfumerie.Domain.Entities.Fournisseur", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Adresse")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Telephone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Fournisseurs");
                 });
 
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.LigneCommande", b =>
@@ -245,6 +240,9 @@ namespace GestionParfumerie.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("BrandId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CategorieId")
                         .HasColumnType("int");
 
@@ -255,32 +253,42 @@ namespace GestionParfumerie.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("FamilleOlfactiveId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FournisseurId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Nom")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PhotoPath")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Prix")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("QuantiteEnStock")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BrandId");
+
                     b.HasIndex("CategorieId");
+
+                    b.ToTable("Produits");
+                });
+
+            modelBuilder.Entity("GestionParfumerie.Domain.Entities.ProduitFamilleOlfactive", b =>
+                {
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FamilleOlfactiveId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProduitId", "FamilleOlfactiveId");
 
                     b.HasIndex("FamilleOlfactiveId");
 
-                    b.HasIndex("FournisseurId");
-
-                    b.ToTable("Produits");
+                    b.ToTable("ProduitFamilleOlfactives");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -448,29 +456,40 @@ namespace GestionParfumerie.Infrastructure.Migrations
 
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.Produit", b =>
                 {
+                    b.HasOne("GestionParfumerie.Domain.Entities.Brand", "Brand")
+                        .WithMany("Produits")
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("GestionParfumerie.Domain.Entities.Categorie", "Categorie")
                         .WithMany("Produits")
                         .HasForeignKey("CategorieId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("GestionParfumerie.Domain.Entities.FamilleOlfactive", "FamilleOlfactive")
-                        .WithMany("Produits")
-                        .HasForeignKey("FamilleOlfactiveId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("GestionParfumerie.Domain.Entities.Fournisseur", "Fournisseur")
-                        .WithMany("Produits")
-                        .HasForeignKey("FournisseurId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("Brand");
 
                     b.Navigation("Categorie");
+                });
+
+            modelBuilder.Entity("GestionParfumerie.Domain.Entities.ProduitFamilleOlfactive", b =>
+                {
+                    b.HasOne("GestionParfumerie.Domain.Entities.FamilleOlfactive", "FamilleOlfactive")
+                        .WithMany("ProduitFamilles")
+                        .HasForeignKey("FamilleOlfactiveId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestionParfumerie.Domain.Entities.Produit", "Produit")
+                        .WithMany("ProduitFamilles")
+                        .HasForeignKey("ProduitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("FamilleOlfactive");
 
-                    b.Navigation("Fournisseur");
+                    b.Navigation("Produit");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -529,6 +548,11 @@ namespace GestionParfumerie.Infrastructure.Migrations
                     b.Navigation("Commandes");
                 });
 
+            modelBuilder.Entity("GestionParfumerie.Domain.Entities.Brand", b =>
+                {
+                    b.Navigation("Produits");
+                });
+
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.Categorie", b =>
                 {
                     b.Navigation("Produits");
@@ -541,17 +565,14 @@ namespace GestionParfumerie.Infrastructure.Migrations
 
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.FamilleOlfactive", b =>
                 {
-                    b.Navigation("Produits");
-                });
-
-            modelBuilder.Entity("GestionParfumerie.Domain.Entities.Fournisseur", b =>
-                {
-                    b.Navigation("Produits");
+                    b.Navigation("ProduitFamilles");
                 });
 
             modelBuilder.Entity("GestionParfumerie.Domain.Entities.Produit", b =>
                 {
                     b.Navigation("LigneCommandes");
+
+                    b.Navigation("ProduitFamilles");
                 });
 #pragma warning restore 612, 618
         }

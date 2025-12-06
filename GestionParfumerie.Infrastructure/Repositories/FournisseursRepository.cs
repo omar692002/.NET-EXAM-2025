@@ -6,7 +6,7 @@ using GestionParfumerie.Application.Interfaces;
 
 namespace GestionParfumerie.Infrastructure.Repositories
 {
-    public class FournisseursRepository : IFournisseursRepository
+    public class FournisseursRepository : IBrandsRepository
     {
         private readonly ApplicationDbContext _context;
 
@@ -16,7 +16,7 @@ namespace GestionParfumerie.Infrastructure.Repositories
         }
 
         // --- Get all suppliers ---
-        public async Task<IEnumerable<Fournisseur>> GetAllAsync()
+        public async Task<IEnumerable<Brand>> GetAllAsync()
         {
             return await _context.Fournisseurs
                 .Include(f => f.Produits) 
@@ -24,7 +24,7 @@ namespace GestionParfumerie.Infrastructure.Repositories
         }
 
         // --- Get supplier by Id ---
-        public async Task<Fournisseur?> GetByIdAsync(int id)
+        public async Task<Brand?> GetByIdAsync(int id)
         {
             return await _context.Fournisseurs
                 .Include(f => f.Produits)
@@ -32,14 +32,14 @@ namespace GestionParfumerie.Infrastructure.Repositories
         }
 
         // --- Add a new supplier ---
-        public async Task AddAsync(Fournisseur fournisseur)
+        public async Task AddAsync(Brand fournisseur)
         {
             _context.Fournisseurs.Add(fournisseur);
             await _context.SaveChangesAsync();
         }
 
         // --- Update an existing supplier ---
-        public async Task UpdateAsync(Fournisseur fournisseur)
+        public async Task UpdateAsync(Brand fournisseur)
         {
             _context.Fournisseurs.Update(fournisseur);
             await _context.SaveChangesAsync();

@@ -18,9 +18,13 @@ namespace GestionParfumerie.Infrastructure.Repositories
             return await _context.LigneCommandes.Include(lc=>lc.ProduitId).Include(lc=>lc.CommandeId).ToListAsync();
         }
 
-        public async Task<LigneCommande> GetByIdAsync(int id)
+        public async Task<LigneCommande?> GetByIdAsync(int id)
         {
-            return await _context.LigneCommandes.Include(p=>p.ProduitId).FirstOrDefaultAsync(p => p.Id == id);
+            // Ajoutez "?? null" ou retournez une exception
+            return await _context.LigneCommandes
+                .Include(lc => lc.Produit)
+                .Include(lc => lc.Commande)
+                .FirstOrDefaultAsync(lc => lc.Id == id) ?? null; // Ou throw new Exception("Not found");
         }
 
         public async Task AddAsync(LigneCommande ligne)
