@@ -79,15 +79,8 @@
 
                 // Rediriger selon le rôle
                 var user = await AuthService.GetClaimsPrincipalAsync();
+                NavManager.NavigateTo("/", forceLoad: true);
 
-                if (user.IsInRole("Admin"))
-                {
-                    NavManager.NavigateTo("/admin", forceLoad: true);
-                }
-                else
-                {
-                    NavManager.NavigateTo("/", forceLoad: true);
-                }
             }
             else
             {

@@ -1,5 +1,6 @@
-﻿using System.Net.Http.Json;
-using GestionParfumerie.Application.DTOs;
+﻿using GestionParfumerie.Application.DTOs;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace GestionParfumerie.Client.Services
 {
@@ -23,6 +24,16 @@ namespace GestionParfumerie.Client.Services
         {
             var response = await _http.PutAsJsonAsync($"api/commandes/{id}/status", statut);
             response.EnsureSuccessStatusCode();
+        }
+
+        public async Task<List<string>> GetStatutsAsync()
+        {
+            var response = await _http.GetAsync("api/commandes/statuts");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
+            }
+            return new List<string>();
         }
     }
 }

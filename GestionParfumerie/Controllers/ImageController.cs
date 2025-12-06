@@ -35,7 +35,7 @@ namespace API.Controllers
                     return BadRequest($"Extension non autorisée. Extensions autorisées : {string.Join(", ", _allowedExtensions)}");
 
                 // Créer le dossier si n'existe pas
-                var uploadsFolder = Path.Combine(_environment.WebRootPath, "images", "produits");
+                var uploadsFolder = Path.Combine(_environment.WebRootPath, "images");
                 if (!Directory.Exists(uploadsFolder))
                     Directory.CreateDirectory(uploadsFolder);
 
@@ -50,7 +50,7 @@ namespace API.Controllers
                 }
 
                 // Retourner le chemin relatif
-                var relativePath = $"/images/produits/{uniqueFileName}";
+                var relativePath = $"/images/{uniqueFileName}";
                 return Ok(new { path = relativePath });
             }
             catch (Exception ex)

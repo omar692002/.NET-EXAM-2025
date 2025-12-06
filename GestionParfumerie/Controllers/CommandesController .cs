@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using GestionParfumerie.Application.DTOs;
 using GestionParfumerie.Application.Services;
+using GestionParfumerie.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -73,6 +74,17 @@ namespace GestionParfumerie.Controllers
             if (!success) return NotFound();
 
             return NoContent();
+        }
+        [AllowAnonymous]
+        [HttpGet("statuts")]
+        public IActionResult GetStatuts()
+        {
+            var statuts = Enum.GetValues(typeof(StatutCommande))
+                .Cast<StatutCommande>()
+                .Select(s => s.ToString())
+                .ToList();
+
+            return Ok(statuts);
         }
 
 

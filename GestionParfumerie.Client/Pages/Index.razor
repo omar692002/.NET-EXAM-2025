@@ -1,65 +1,310 @@
 ﻿@page "/"
 @attribute [Authorize]
+@using System.Globalization
 
-<PageTitle>Accueil</PageTitle>
+<PageTitle>Tableau de bord</PageTitle>
 
-<div class="container mt-5">
-    <h1>Bienvenue dans la Gestion de Parfumerie 🌸</h1>
-
+<div class="container-fluid px-4 py-4">
     <AuthorizeView>
         <Authorized Context="userCtx">
-            <div class="alert alert-success mt-4">
-                <h4>✅ Vous êtes connecté en tant que : @userCtx.User.Identity?.Name</h4>
-
-                <p class="mb-0">
-                    <strong>Vos rôles :</strong>
-                    @foreach (var claim in userCtx.User.Claims.Where(c => c.Type.Contains("role")))
-                    {
-                        <span class="badge bg-primary me-2">@claim.Value</span>
-                    }
-                </p>
+            <!-- En-tête de bienvenue -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-tachometer-alt me-2"></i>Tableau de bord
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Bon retour, <strong>@userCtx.User.Identity?.Name</strong>
+                        (@string.Join(", ", userCtx.User.Claims.Where(c => c.Type.Contains("role")).Select(c => c.Value)))
+                    </p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success">
+                        <i class="fas fa-circle me-1"></i>Connecté
+                    </span>
+                    <div class="small text-muted mt-1">@DateTime.Now.ToString("dddd dd MMMM yyyy", new CultureInfo("fr-FR"))</div>
+                </div>
             </div>
 
-            <div class="row g-4 mt-3">
-                <!-- Carte Admin -->
-                <AuthorizeView Roles="Admin">
-                    <Authorized Context="adminCtx">
-                        <div class="col-md-6">
-                            <div class="card text-white bg-primary h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">🔧 Panel Admin</h5>
-                                    <p class="card-text">Gérez les utilisateurs, produits, catégories, fournisseurs et commandes</p>
-                                    <a href="/admin" class="btn btn-light">Accéder au panel</a>
+            <!-- Cartes de statistiques -->
+            <div class="row mb-4">
+                <!-- Carte Chiffre d'affaires -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-start-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                        Chiffre d'affaires (Mensuel)
+                                    </div>
+                                    <div class="h5 mb-0 fw-bold text-gray-800">@(monthlyRevenue.ToString("C", new CultureInfo("fr-FR")))</div>
+                                    <div class="mt-2 mb-0 text-muted text-xs">
+                                        <span class="text-success me-2">
+                                            <i class="fas fa-arrow-up"></i> 12%
+                                        </span>
+                                        <span>Depuis le mois dernier</span>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-euro-sign fa-2x text-gray-300"></i>
                                 </div>
                             </div>
                         </div>
-                    </Authorized>
-                </AuthorizeView>
+                    </div>
+                </div>
 
-                <!-- Carte Client -->
-                <AuthorizeView Roles="Client">
-                    <Authorized Context="clientCtx">
-                        <div class="col-md-6">
-                            <div class="card text-white bg-success h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">🛍️ Produits</h5>
-                                    <p class="card-text">Découvrez notre catalogue de parfums</p>
-                                    <a href="/products" class="btn btn-light">Voir les produits</a>
+                <!-- Carte Commandes -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-start-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                        Nouvelles commandes
+                                    </div>
+                                    <div class="h5 mb-0 fw-bold text-gray-800">@newOrders</div>
+                                    <div class="mt-2 mb-0 text-muted text-xs">
+                                        <span class="text-success me-2">
+                                            <i class="fas fa-arrow-up"></i> 8%
+                                        </span>
+                                        <span>Depuis hier</span>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
                                 </div>
                             </div>
                         </div>
-                    </Authorized>
-                </AuthorizeView>
+                    </div>
+                </div>
+
+                <!-- Carte Clients actifs -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-start-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                        Clients actifs
+                                    </div>
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col-auto">
+                                            <div class="h5 mb-0 mr-3 fw-bold text-gray-800">@activeCustomers</div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="progress progress-sm mr-2">
+                                                <div class="progress-bar bg-info" role="progressbar"
+                                                     style="width: @((activeCustomers / 1000.0 * 100).ToString("0"))%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 mb-0 text-muted text-xs">
+                                        <span class="text-success me-2">
+                                            <i class="fas fa-arrow-up"></i> 5%
+                                        </span>
+                                        <span>Depuis la semaine dernière</span>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carte Taux de connexion -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-start-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                        Taux de connexion
+                                    </div>
+                                    <div class="h5 mb-0 fw-bold text-gray-800">@(loginRate.ToString("0.0"))%</div>
+                                    <div class="mt-2 mb-0 text-muted text-xs">
+                                        <span class="text-success me-2">
+                                            <i class="fas fa-arrow-up"></i> 3%
+                                        </span>
+                                        <span>Depuis le mois dernier</span>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard simple ajouté -->
+            <div class="row mt-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card shadow">
+                        <div class="card-header fw-bold text-primary">
+                            Ventes récentes (statique)
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th>Client</th>
+                                        <th>Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Chanel N°5</td>
+                                        <td>Sarah</td>
+                                        <td>89,50 €</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dior J'adore</td>
+                                        <td>Luc</td>
+                                        <td>95,00 €</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Gucci Bloom</td>
+                                        <td>Anna</td>
+                                        <td>78,00 €</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+              
+            </div>
+            <!-- Actions rapides -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card shadow">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 fw-bold text-primary">Actions rapides</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3 col-6">
+                                    <a href="/products" class="btn btn-outline-primary w-100 h-100 py-3">
+                                        <i class="fas fa-shopping-bag fa-2x mb-2"></i><br>
+                                        <span>Boutique</span>
+                                    </a>
+                                </div>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <div class="col-md-3 col-6">
+                                            <a href="/admin/users" class="btn btn-outline-success w-100 h-100 py-3">
+                                                <i class="fas fa-users fa-2x mb-2"></i><br>
+                                                <span>Gérer utilisateurs</span>
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <a href="/admin/orders" class="btn btn-outline-info w-100 h-100 py-3">
+                                                <i class="fas fa-clipboard-list fa-2x mb-2"></i><br>
+                                                <span>Commandes</span>
+                                            </a>
+                                        </div>
+                                    </Authorized>
+                                </AuthorizeView>
+                                <div class="col-md-3 col-6">
+                                    <a href="/profile" class="btn btn-outline-warning w-100 h-100 py-3">
+                                        <i class="fas fa-user-cog fa-2x mb-2"></i><br>
+                                        <span>Mon profil</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </Authorized>
 
         <NotAuthorized>
-            <div class="alert alert-info mt-4">
-                <h4>Bienvenue 👋</h4>
-                <p>Pour accéder aux fonctionnalités, veuillez vous connecter ou créer un compte.</p>
-                <a href="/login" class="btn btn-primary me-2">Connexion</a>
-                <a href="/register" class="btn btn-success">Inscription</a>
+            <!-- Version pour non connecté -->
+            <div class="row justify-content-center mt-5">
+                <div class="col-lg-6">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body text-center p-5">
+                            <i class="fas fa-lock fa-4x text-primary mb-4"></i>
+                            <h2 class="h3 mb-3">Accès restreint</h2>
+                            <p class="text-muted mb-4">
+                                Pour accéder au tableau de bord et aux fonctionnalités de l'application,
+                                veuillez vous connecter ou créer un compte.
+                            </p>
+                            <div class="d-grid gap-2 d-md-block">
+                                <a href="/login" class="btn btn-primary btn-lg px-4 me-2">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Connexion
+                                </a>
+                                <a href="/register" class="btn btn-outline-primary btn-lg px-4">
+                                    <i class="fas fa-user-plus me-2"></i>Inscription
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </NotAuthorized>
     </AuthorizeView>
 </div>
+
+<style>
+    .border-start-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+    .border-start-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+    .border-start-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+    .border-start-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+    .icon-circle {
+        height: 2.5rem;
+        width: 2.5rem;
+        border-radius: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+@code {
+    private List<SaleItem> sales = new()
+{
+    new() { Produit = "Chanel N°5", Client = "Sarah", Montant = 89.50m },
+    new() { Produit = "Dior J'adore", Client = "Luc", Montant = 95.00m },
+    new() { Produit = "Gucci Bloom", Client = "Anna", Montant = 78.00m }
+};
+
+    private class SaleItem
+    {
+        public string Produit { get; set; }
+        public string Client { get; set; }
+        public decimal Montant { get; set; }
+    }
+
+    private decimal monthlyRevenue = 15432.50m;
+    private int newOrders = 24;
+    private int activeCustomers = 842;
+    private double loginRate = 87.5;
+
+    private RecentActivity recentActivity = new()
+    {
+        Connexions = 3,
+        ProduitsConsultés = 12,
+        Commandes = 1
+    };
+
+    private class RecentActivity
+    {
+        public int Connexions { get; set; }
+        public int ProduitsConsultés { get; set; }
+        public int Commandes { get; set; }
+    }
+}

@@ -1,21 +1,26 @@
-﻿using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Security.Claims;
+﻿using GestionParfumerie.Client.Models;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
-using GestionParfumerie.Client.Models;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Claims;
+
 namespace GestionParfumerie.Client.Services
 {
     public class AuthService
     {
         private readonly HttpClient _http;
         private readonly IJSRuntime _js;
+        private readonly NavigationManager _navManager;
         private const string TOKEN_KEY = "authToken";
 
-        public AuthService(HttpClient http, IJSRuntime js)
+        // Ajoutez NavigationManager dans le constructeur
+        public AuthService(HttpClient http, IJSRuntime js, NavigationManager navManager)
         {
             _http = http;
             _js = js;
+            _navManager = navManager;
         }
 
         // ==========================================
@@ -105,6 +110,9 @@ namespace GestionParfumerie.Client.Services
         {
             await _js.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
             _http.DefaultRequestHeaders.Authorization = null;
+
+            // Rediriger vers la page de login
+            _navManager.NavigateTo("/login");
         }
 
         // ==========================================

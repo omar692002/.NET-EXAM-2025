@@ -10,58 +10,50 @@
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Commande</th>
-                <th>Client</th>
-                <th>Date</th>
-                <th>Statut</th>
-                <th>Total</th>
-                <th>Nb Articles</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in PagedCommandes)
-            {
+    <div class="table-container" style="@(commandes.Count > 10 ? "max-height: 600px; overflow-y: auto;" : "")">
+        <table class="table table-striped">
+            <thead style="position: sticky; top: 0; background-color: #fff; z-index: 10;">
                 <tr>
-                    <td>@c.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@c.UtilisateurEmail</td>
-                    <td>@c.DateCommande.ToShortDateString()</td>
-                    <td>@c.Statut</td>
-                    <td>@c.Total.ToString("C")</td>
-                    <td>@c.NbArticles</td>
-                    <td>
-                        <button class="btn btn-sm btn-info me-1" @onclick="() => ShowDetailsModal(c)">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning" @onclick="() => ShowStatutModal(c)">
-                            <i class="bi bi-pencil-square"></i>
-                        </button>
-                    </td>
+                    <th>Commande</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Total</th>
+                    <th>Nb Articles</th>
+                    <th>Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var c in commandes)
+                {
+                    <tr>
+                        <td>@c.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@c.UtilisateurEmail</td>
+                        <td>@c.DateCommande.ToShortDateString()</td>
+                        <td>
+                            <span class="badge bg-@GetStatutColor(c.Statut)">
+                                @FormatStatut(c.Statut)
+                            </span>
+                        </td>
+                        <td>@c.Total.ToString("C")</td>
+                        <td>@c.NbArticles</td>
+                        <td>
+                            <button class="btn btn-sm btn-info me-1" @onclick="() => ShowDetailsModal(c)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning" @onclick="() => ShowStatutModal(c)">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-    <!-- Pagination -->
-    <nav>
-        <ul class="pagination">
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="PrevPage">Précédent</a>
-            </li>
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                <li class="page-item @(currentPage == i ? "active" : "")">
-                    <a class="page-link" href="#" @onclick="() => GoToPage(i)">@i</a>
-                </li>
-            }
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <a class="page-link" href="#" @onclick="NextPage">Suivant</a>
-            </li>
-        </ul>
-    </nav>
+    <div class="mt-3">
+        <small class="text-muted">Total : @commandes.Count commande(s)</small>
+    </div>
 }
 
 <!-- Modal détails commande -->
@@ -73,6 +65,14 @@ else
                 <button type="button" class="btn-close" @onclick="CloseDetailsModal"></button>
             </div>
             <div class="modal-body">
+                @if (selectedCommande != null)
+                {
+                    <div class="mb-3">
+                        <p><strong>Client :</strong> @selectedCommande.UtilisateurEmail</p>
+                        <p><strong>Date :</strong> @selectedCommande.DateCommande.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>Statut :</strong> <span class="badge bg-@GetStatutColor(selectedCommande.Statut)">@FormatStatut(selectedCommande.Statut)</span></p>
+                    </div>
+                }
                 <table class="table table-sm">
                     <thead>
                         <tr>
@@ -93,6 +93,12 @@ else
                             </tr>
                         }
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Total :</strong></td>
+                            <td><strong>@selectedCommande?.Total.ToString("C")</strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
             <div class="modal-footer">
@@ -111,11 +117,19 @@ else
                 <button type="button" class="btn-close" @onclick="CloseStatutModal"></button>
             </div>
             <div class="modal-body">
+                @if (selectedCommande != null)
+                {
+                    <p class="mb-3">
+                        <strong>Commande :</strong> @selectedCommande.DateCommande.ToString("dd/MM/yyyy HH:mm")<br />
+                        <strong>Client :</strong> @selectedCommande.UtilisateurEmail
+                    </p>
+                }
+                <label class="form-label">Nouveau statut</label>
                 <select class="form-select" @bind="newStatut">
-                    <option value="EnCours">En cours</option>
-                    <option value="Payee">Payée</option>
-                    <option value="Expediee">Expédiée</option>
-                    <option value="Annulee">Annulée</option>
+                    @foreach (var statut in statutsDisponibles)
+                    {
+                        <option value="@statut">@FormatStatut(statut)</option>
+                    }
                 </select>
             </div>
             <div class="modal-footer">
@@ -128,12 +142,7 @@ else
 
 @code {
     private List<CommandeDTO>? commandes;
-
-    // Pagination
-    private int currentPage = 1;
-    private int pageSize = 5;
-    private int totalPages => commandes != null ? (int)Math.Ceiling(commandes.Count / (double)pageSize) : 1;
-    private IEnumerable<CommandeDTO> PagedCommandes => commandes?.Skip((currentPage - 1) * pageSize).Take(pageSize) ?? Enumerable.Empty<CommandeDTO>();
+    private List<string> statutsDisponibles = new();
 
     // Modals
     private bool showDetailsModal = false;
@@ -144,6 +153,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         commandes = await CommandesService.GetAllAsync();
+        statutsDisponibles = await CommandesService.GetStatutsAsync();
+
+        // Trier les commandes par date décroissante
+        if (commandes != null)
+        {
+            commandes = commandes.OrderByDescending(c => c.DateCommande).ToList();
+        }
     }
 
     private void ShowDetailsModal(CommandeDTO c)
@@ -157,7 +173,7 @@ else
     private void ShowStatutModal(CommandeDTO c)
     {
         selectedCommande = c;
-        newStatut = c.Statut.Replace(" ", ""); // enlève espaces si nécessaire
+        newStatut = c.Statut.Replace(" ", "");
         showStatutModal = true;
     }
 
@@ -169,11 +185,32 @@ else
         {
             await CommandesService.UpdateStatutAsync(selectedCommande.Id, newStatut);
             selectedCommande.Statut = newStatut;
+            StateHasChanged();
         }
         showStatutModal = false;
     }
 
-    private void PrevPage() => currentPage = currentPage > 1 ? currentPage - 1 : 1;
-    private void NextPage() => currentPage = currentPage < totalPages ? currentPage + 1 : totalPages;
-    private void GoToPage(int page) => currentPage = page;
+    private string FormatStatut(string statut)
+    {
+        return statut switch
+        {
+            "EnCours" => "En cours",
+            "Expediée" => "Expédiée",
+            "Livrée" => "Livrée",
+            "Annulée" => "Annulée",
+            _ => statut
+        };
+    }
+
+    private string GetStatutColor(string statut)
+    {
+        return statut switch
+        {
+            "EnCours" => "warning",
+            "Expediée" => "info",
+            "Livrée" => "success",
+            "Annulée" => "danger",
+            _ => "secondary"
+        };
+    }
 }
