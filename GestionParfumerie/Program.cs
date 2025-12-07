@@ -35,9 +35,12 @@ namespace GestionParfumerie
             // ==========================================
             //  CONFIGURATION DE LA BASE DE DONNÉES
             // ==========================================
-            var cnx = builder.Configuration.GetConnectionString("DefaultConnection");
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(cnx));
+            if (builder.Environment.EnvironmentName != "Testing")
+            {
+                var cnx = builder.Configuration.GetConnectionString("DefaultConnection");
+                builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(cnx));
+            }
 
             // ==========================================
             //  CONFIGURATION DE IDENTITY (Utilisateurs)
@@ -184,3 +187,4 @@ namespace GestionParfumerie
         }
     }
 }
+public partial class Program { }

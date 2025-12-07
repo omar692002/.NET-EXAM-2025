@@ -10,7 +10,7 @@ namespace GestionParfumerie.Application.Interfaces
     public interface ICategoriesRepository
     {
         Task<IEnumerable<Categorie>> GetAllAsync();
-        Task<Categorie> GetByIdAsync(int id);
+        Task<Categorie?> GetByIdAsync(int id);
         Task<Categorie> AddAsync(Categorie categorie);
         Task UpdateAsync(Categorie categorie);
         Task DeleteAsync(int id);
