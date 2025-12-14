@@ -135,36 +135,44 @@ namespace GestionParfumerie
             // ==========================================
             //  SEED DES RÔLES ET ADMIN/CLIENT
             // ==========================================
-            using (var scope = app.Services.CreateScope())
+            // ==========================================
+            //  SEED DES RÔLES ET ADMIN/CLIENT (PAS EN TESTS)
+            // ==========================================
+            if (!app.Environment.IsEnvironment("Testing"))
             {
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-                // Créer les rôles si nécessaire
-                string[] roles = { "Admin", "Client" };
-                foreach (var role in roles)
+                using (var scope = app.Services.CreateScope())
                 {
-                    if (!await roleManager.RoleExistsAsync(role))
-                        await roleManager.CreateAsync(new IdentityRole(role));
-                }
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-                // Créer l'utilisateur admin s'il n'existe pas
-                var adminEmail = "admin@admin.com";
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
-                if (adminUser == null)
-                {
-                    adminUser = new ApplicationUser
+                    // Créer les rôles si nécessaire
+                    string[] roles = { "Admin", "Client" };
+                    foreach (var role in roles)
                     {
-                        UserName = adminEmail,
-                        Email = adminEmail,
-                        Nom = "Super",
-                        Prenom = "Admin"
-                    };
+                        if (!await roleManager.RoleExistsAsync(role))
+                            await roleManager.CreateAsync(new IdentityRole(role));
+                    }
 
-                    await userManager.CreateAsync(adminUser, "Admin123!"); // mot de passe sécurisé
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    // Créer l'utilisateur admin
+                    var adminEmail = "admin@admin.com";
+                    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+                    if (adminUser == null)
+                    {
+                        adminUser = new ApplicationUser
+                        {
+                            UserName = adminEmail,
+                            Email = adminEmail,
+                            Nom = "Super",
+                            Prenom = "Admin"
+                        };
+
+                        await userManager.CreateAsync(adminUser, "Admin123!");
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
                 }
             }
+
 
             // ==========================================
             //  PIPELINE HTTP

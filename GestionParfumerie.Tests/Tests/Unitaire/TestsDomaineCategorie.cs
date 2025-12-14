@@ -1,116 +1,61 @@
-﻿using OpenQA.Selenium;
-using GestionParfumerie.Tests.Helpers;
-using GestionParfumerie.Tests.PageObjects;
-
+﻿using System.ComponentModel.DataAnnotations;
+using GestionParfumerie.Domain.Entities;
+using Xunit;
 namespace GestionParfumerie.Tests.Tests.Unitaire
 {
-    public class LoginTests : IDisposable
+    public class TestsDomaineCategorie
     {
-        private readonly IWebDriver _driver;
-        private readonly LoginPage _loginPage;
-
-        public LoginTests()
+        private IList<ValidationResult> Validate(Categorie c)
         {
-            // Setup - Initialiser le driver avant chaque test
-            _driver = DriverHelper.GetChromeDriver();
-            _loginPage = new LoginPage(_driver);
+            var results = new List<ValidationResult>();
+            Validator.TryValidateObject(c, new ValidationContext(c), results, true);
+            return results;
         }
 
         [Fact]
-        public void Test01_OpenLoginPage_ShouldDisplayLoginForm()
+        public void Categorie_Nom_Obligatoire()
         {
-            // Arrange & Act
-            _loginPage.NavigateToLoginPage();
+            var cat = new Categorie
+            {
+                Nom = null,
+                Description = "Test",
+                Produits = new List<Produit>()
+            };
 
-            // Assert
-            string currentUrl = _driver.Url.ToLower();
-            Assert.True(currentUrl.Contains("login"), $"L'URL devrait contenir 'login'. URL actuelle: {currentUrl}");
+            var results = Validate(cat);
+
+            Assert.Contains(results, r => r.MemberNames.Contains("Nom"));
         }
 
         [Fact]
-        public void Test02_LoginWithValidCredentials_ShouldSucceed()
+        public void Categorie_Nom_Depasse_100_Caracteres()
         {
-            // Arrange
-            _loginPage.NavigateToLoginPage();
-            string validEmail = "admin@test.com"; // Utilise un compte existant dans ta DB
-            string validPassword = "Password123!"; // Adapte selon ton compte
+            var cat = new Categorie
+            {
+                Nom = new string('a', 101),
+                Description = "Test",
+                Produits = new List<Produit>()
+            };
 
-            // Act
-            _loginPage.Login(validEmail, validPassword);
+            var results = Validate(cat);
 
-            // Assert
-            Thread.Sleep(3000); // Attendre la redirection
-            Assert.True(_loginPage.IsLoginSuccessful(), "Le login devrait réussir");
-
-            string currentUrl = _driver.Url.ToLower();
-            Assert.False(currentUrl.Contains("login"), "Ne devrait plus être sur la page login");
+            Assert.Contains(results, r => r.MemberNames.Contains("Nom"));
         }
 
         [Fact]
-        public void Test03_LoginWithInvalidEmail_ShouldFail()
+        public void Categorie_Description_Depasse_300_Caracteres()
         {
-            // Arrange
-            _loginPage.NavigateToLoginPage();
-            string invalidEmail = "wrongemail@test.com";
-            string password = "Password123!";
+            var cat = new Categorie
+            {
+                Nom = "Test",
+                Description = new string('a', 301),
+                Produits = new List<Produit>()
+            };
 
-            // Act
-            _loginPage.Login(invalidEmail, password);
+            var results = Validate(cat);
 
-            // Assert
-            Thread.Sleep(2000); // Attendre le message d'erreur
-
-            string currentUrl = _driver.Url;
-            bool hasError = _loginPage.IsErrorMessageDisplayed();
-            bool staysOnLogin = currentUrl.Contains("login");
-
-            Assert.True(hasError || staysOnLogin,
-                "Une erreur devrait s'afficher ou rester sur la page login");
-        }
-
-        [Fact]
-        public void Test04_LoginWithInvalidPassword_ShouldFail()
-        {
-            // Arrange
-            _loginPage.NavigateToLoginPage();
-            string validEmail = "admin@test.com";
-            string invalidPassword = "WrongPassword123!";
-
-            // Act
-            _loginPage.Login(validEmail, invalidPassword);
-
-            // Assert
-            Thread.Sleep(2000);
-
-            string currentUrl = _driver.Url;
-            bool hasError = _loginPage.IsErrorMessageDisplayed();
-            bool staysOnLogin = currentUrl.Contains("login");
-
-            Assert.True(hasError || staysOnLogin,
-                "Une erreur devrait s'afficher ou rester sur la page login");
-        }
-
-        [Fact]
-        public void Test05_LoginWithEmptyFields_ShouldFail()
-        {
-            // Arrange
-            _loginPage.NavigateToLoginPage();
-
-            // Act
-            _loginPage.Login("", "");
-
-            // Assert
-            Thread.Sleep(1000);
-
-            string currentUrl = _driver.Url.ToLower();
-            Assert.True(currentUrl.Contains("login"), "Devrait rester sur la page login");
-        }
-
-        public void Dispose()
-        {
-            // Cleanup - Fermer le navigateur après chaque test
-            _driver?.Quit();
-            _driver?.Dispose();
+            Assert.Contains(results, r => r.MemberNames.Contains("Description"));
         }
     }
+
 }

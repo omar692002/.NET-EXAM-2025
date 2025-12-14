@@ -6,9 +6,6 @@ using GestionParfumerie.Infrastructure.Data;
 using GestionParfumerie.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
-
-using Microsoft.EntityFrameworkCore.InMemory;
 
 namespace GestionParfumerie.Tests.Integration
 {
